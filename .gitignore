@@ -47,3 +47,4 @@ app.*.map.json
 
 .firebase
 .firebaserc
+lib/src/remote/api.dart
