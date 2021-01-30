@@ -1,24 +1,24 @@
 import 'dart:async';
-import 'dart:io';
 
-import 'package:flare_flutter/flare_actor.dart';
+import 'package:firebase/firebase.dart';
 import 'package:flare_flutter/flare_controls.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
-import 'package:lottie/lottie.dart';
-import 'package:web_browser_detect/browser.dart';
-
+import 'src/remote/api.dart';
 import 'src/utils/character_style.dart';
 
 
+
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  final firebase = FirebaseInstance.instance;
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    print(">>> Called MyApp");
     return MaterialApp(
       title: 'Lunch Quest',
       darkTheme: ThemeData.dark(),
@@ -41,43 +41,25 @@ class _MyHomePageState extends State<MyHomePage> {
   CharacterStyle hero;
   bool isOpen = false;
   Timer loopTimer;
-
+  StreamSubscription _streamSubscription;
   final FlareControls controls = FlareControls();
 
-  void _chooseHero() {
-    setState(() {
-      hero = CharacterStyle.random();
-    });
-    // _startTimer();
-  }
-
-  void _playSuccessAnimation() {
-    // Use the controls to trigger an animation.
-    if (isOpen) {
-      controls.play("idle");
-    } else {
-      controls.play("working");
-    }
-    setState(() {
-      isOpen = !isOpen;
-    });
-  }
 
   @override
   void initState() {
-    _chooseHero();
     super.initState();
+    _chooseHero();
 
-      loopTimer = Timer.periodic(Duration(seconds: 4), (timer) {
-        _playSuccessAnimation();
-      });
-
+    loopTimer = Timer.periodic(Duration(seconds: 4), (timer) {
+      _playSuccessAnimation();
+    });
   }
 
   @override
   void dispose() {
     // TODO: implement dispose
     loopTimer?.cancel();
+    _streamSubscription.cancel();
     super.dispose();
   }
 
@@ -130,13 +112,28 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () {
-          setState(() {
-            isOpen = !isOpen;
-          });
+
         },
         tooltip: 'Increment',
         child: Icon(Icons.add),
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
+  }
+  void _chooseHero() {
+    setState(() {
+      hero = CharacterStyle.random();
+    });
+  }
+
+  void _playSuccessAnimation() {
+    // Use the controls to trigger an animation.
+    if (isOpen) {
+      controls.play("idle");
+    } else {
+      controls.play("working");
+    }
+    setState(() {
+      isOpen = !isOpen;
+    });
   }
 }
