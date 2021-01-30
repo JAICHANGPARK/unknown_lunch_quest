@@ -7,6 +7,7 @@ import 'package:flutter_date_picker_timeline/flutter_date_picker_timeline.dart';
 import 'package:flutter_lunch_quest/src/model/user.dart' as mUser;
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_lunch_quest/src/utils/character_style.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fluttertoast/fluttertoast_web.dart';
 import 'package:intl/intl.dart';
@@ -30,10 +31,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Firestore firestore = FirebaseInstance.instance.store;
   FancyDrawerController _controller;
   List<mUser.User> userList = [];
+  List<mUser.User> enterUserList = [];
   bool isPlaying = false;
   AnimationController _animationController;
   GlobalKey<ScaffoldState> _drawerKey = GlobalKey();
   String currentDate = DateTime.now().toString().split(" ").first;
+  int totalTicket;
+  bool existRoom = false;
+
+  Future checkExistRoom(String date) async {
+    if (enterUserList.length > 0) enterUserList.clear();
+    DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(date).get();
+    if (querySnapshot == null || !querySnapshot.exists) {
+      existRoom = false;
+    } else {
+      existRoom = true;
+      print("querySnapshot.data() : ${querySnapshot.data()}");
+      querySnapshot.data()["users"].forEach((element) {
+        String name = element.toString();
+        print(element);
+        enterUserList.add(mUser.User(name: name, team: ""));
+      });
+      
+    }
+  }
 
   Future<List<mUser.User>> fetchAllUsers() async {
     List<mUser.User> dataList = [];
@@ -63,11 +84,25 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return dataList;
   }
 
+  Future<int> fetchTotalTicketCount() async {
+    QuerySnapshot querySnapshot = await firestore.collection("ticket").get();
+    print(querySnapshot.docs.first.data()["count"]);
+    return querySnapshot.docs.first.data()["count"];
+  }
+
   @override
   void initState() {
+    _chooseHero();
     super.initState();
     print(">>> currentDate: $currentDate");
-    _chooseHero();
+    checkExistRoom(currentDate).then((value) {
+      setState(() {});
+    });
+    fetchTotalTicketCount().then((value) {
+      setState(() {
+        totalTicket = value;
+      });
+    });
     _controller = FancyDrawerController(vsync: this, duration: Duration(milliseconds: 150))
       ..addListener(() {
         // print(_controller.state);
@@ -76,7 +111,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         }
         setState(() {}); // Must call setState
       }); // This chunk of code is important
-    _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 450));
+
+    //생성된 방이 있는지 확인
+
     // fetchAllUsers().then((value) {
     //   print(userList);
     //   setState(() {
@@ -88,7 +125,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     // TODO: implement dispose
-    _animationController.dispose();
+    _animationController?.dispose();
     loopTimer?.cancel();
     _streamSubscription?.cancel();
     _controller.dispose(); // Dispose c
@@ -145,57 +182,148 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ),
 
                   Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                     child: Card(
                       child: Padding(
                         padding: const EdgeInsets.all(8.0),
                         child: FlutterDatePickerTimeline(
                           startDate: DateTime.now().add(Duration(days: -90)),
-                          endDate: DateTime.now().add(Duration(days: 1)),
+                          endDate: DateTime.now(),
                           initialSelectedDate: DateTime.now(),
-                          onSelectedDateChange: (DateTime dateTime) {
+                          onSelectedDateChange: (DateTime dateTime) async {
                             print(dateTime);
-                            setState(() {
-                              currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
-                            });
+                            currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
+                            await checkExistRoom(currentDate);
+                            setState(() {});
                           },
                         ),
                       ),
                     ),
                   ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 2,
-                    width: MediaQuery.of(context).size.width / 2,
-                    child: Card(
-                      child: userList.length > 0
-                          ? ListView.separated(
-                              shrinkWrap: true,
-                              separatorBuilder: (context, index) {
-                                return Divider();
-                              },
-                              itemCount: userList.length,
-                              itemBuilder: (context, index) {
-                                return ListTile(
-                                  title: Text(userList[index].name),
-                                  subtitle: Text(userList[index].team),
-                                );
-                              })
-                          : Center(
-                              child: CircularProgressIndicator(),
-                            ),
+
+                  Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: totalTicket != null
+                          ? Row(
+                              children: [
+                                Text(
+                                  "총 식권수",
+                                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                ),
+                                Spacer(),
+                                Text(
+                                  "$totalTicket 장",
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : CircularProgressIndicator(),
                     ),
                   ),
+                  SizedBox(
+                    height: 16,
+                  ),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height / 2,
+                    width: MediaQuery.of(context).size.width,
+                    child: existRoom
+                        ? Card(
+                            child: enterUserList.length > 0
+                                ?
 
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text("총 인원수"),
+                                      Text("${enterUserList.length}명")
+                                    ],
+                                  ),
+                                ),
+                                Divider(),
+                                Padding(
+                                  padding: const EdgeInsets.all(16.0),
+                                  child: Text("참가인원목록"),
+                                ),
+                                ListView.separated(
+                                        shrinkWrap: true,
+                                        separatorBuilder: (context, index) {
+                                          return Divider();
+                                        },
+                                        itemCount: enterUserList.length,
+                                        itemBuilder: (context, index) {
+                                          return Slidable(
+                                            actionPane: SlidableScrollActionPane(),
+                                            child: ListTile(
+                                              title: Text(enterUserList[index].name),
+                                              // subtitle: Text(userList[index].team),
+                                            ),
+                                            secondaryActions: <Widget>[
+                                              IconSlideAction(
+                                                  caption: 'More',
+                                                  color: Colors.black45,
+                                                  icon: Icons.more_horiz,
+                                                  onTap: () {
+                                                    ScaffoldMessenger.of(_drawerKey.currentContext).showSnackBar(SnackBar(
+                                                      content: Text("blabla"),
+                                                      behavior: SnackBarBehavior.floating,
+                                                    ));
+                                                  }),
+                                              IconSlideAction(
+                                                  caption: 'Delete', color: Colors.red, icon: Icons.delete, onTap: () {}),
+                                            ],
+                                          );
+                                        }),
+                              ],
+                            )
+                                : Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                          )
+                        : Card(
+                            child: Stack(
+                              children: [
+                                Positioned(
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  top: 0,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [CircularProgressIndicator(), Text("기록이 없습니다.")],
+                                  ),
+                                ),
+                                Positioned(
+                                  child: Container(
+                                    color: Colors.black.withOpacity(0.35),
+                                  ),
+                                  left: 0,
+                                  right: 0,
+                                  bottom: 0,
+                                  top: 0,
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
                   SizedBox(
                     height: 24,
                   ),
-                  Text(
-                    'You have pushed the button this many times:',
-                  ),
-                  Text(
-                    '$_counter',
-                    style: Theme.of(context).textTheme.headline4,
-                  ),
+                  // Text(
+                  //   'You have pushed the button this many times:',
+                  // ),
+                  // Text(
+                  //   '$_counter',
+                  //   style: Theme.of(context).textTheme.headline4,
+                  // ),
                   // browser.browserAgent == BrowserAgent.Chrome
                   //     ? SizedBox(
                   //         width: 480,
@@ -221,6 +349,47 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               ),
             ),
           ),
+          bottomNavigationBar: BottomAppBar(
+            shape: CircularNotchedRectangle(),
+            notchMargin: 16.0,
+            child: Container(
+              height: 84,
+              child: Row(
+                children: [
+                  
+                  Expanded(
+                      child: Padding(
+                    padding: const EdgeInsets.only(right: 64, left: 16, top: 8, bottom: 8),
+                    child: OutlinedButton(
+                      child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Text(
+                          "마감",
+                          style: TextStyle(fontSize: 24),
+                        ),
+                      ),
+                      onPressed: existRoom ? () {} : null,
+                    ),
+                  )),
+                  Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 64, right: 16),
+                        child: MaterialButton(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Text(
+                            "참가신청",
+                            style: TextStyle(color: Colors.white, fontSize: 24),
+                          ),
+                          color: Colors.black,
+                          onPressed: existRoom ? () {} : null,
+                        ),
+                      )),
+                  
+                ],
+              ),
+            ),
+          ),
+          floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
           floatingActionButton: FloatingActionButton(
             onPressed: () async {
               print(currentDate);
@@ -230,19 +399,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 // Document with id == docId doesn't exist.
                 print("Not exist");
                 showDialog(
-                  context: context,
-                  builder: (context)=>AlertDialog(
-                    content: Text("생성된 방이 없습니다."),
-                    actions: [
-                      ElevatedButton(onPressed: (){
-                        Navigator.of(context).pop();
-                      }, child: Text("확인"))
-                    ],
-                  )
-                );
-              }else{
-                Fluttertoast.showToast(msg: "생성된 방이 존재합니다.",
-                webPosition: "center");
+                    context: context,
+                    builder: (context) => AlertDialog(
+                          content: Text("생성된 방이 없습니다."),
+                          actions: [
+                            ElevatedButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                child: Text("확인"))
+                          ],
+                        ));
+              } else {
+                Fluttertoast.showToast(msg: "생성된 방이 존재합니다.", webPosition: "center");
               }
             },
             tooltip: 'Increment',
@@ -264,6 +433,48 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           ),
           Divider(
             endIndent: 32,
+          ),
+          ListTile(
+            title: Text(
+              "데이터",
+              style: TextStyle(color: Colors.black),
+            ),
+            leading: Icon(
+              Icons.list_rounded,
+              color: Colors.black,
+            ),
+            onTap: () {
+            },
+          ),
+          Divider(
+            endIndent: 32,
+          ),
+          ListTile(
+            title: Text(
+              "게시판",
+              style: TextStyle(color: Colors.black),
+            ),
+            leading: Icon(
+              Icons.info_outline,
+              color: Colors.black,
+            ),
+            onTap: () {
+              Navigator.of(context).pushNamed("/bulletin_board");
+            },
+          ),
+          
+          ListTile(
+            title: Text(
+              "문의하기",
+              style: TextStyle(color: Colors.black),
+            ),
+            leading: Icon(
+              Icons.info_outline,
+              color: Colors.black,
+            ),
+            onTap: () {
+              Navigator.of(context).pushNamed("/contact");
+            },
           ),
           ListTile(
             title: Text(
