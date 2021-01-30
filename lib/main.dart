@@ -1,14 +1,9 @@
-import 'dart:async';
-
-import 'package:firebase/firebase.dart';
-import 'package:flare_flutter/flare_controls.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_lunch_quest/src/ui/about_page.dart';
+import 'package:flutter_lunch_quest/src/ui/common/web_network_image.dart';
+import 'package:responsive_builder/responsive_builder.dart';
 import 'src/remote/api.dart';
 import 'src/ui/home_page.dart';
-import 'src/utils/character_style.dart';
-
-
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,12 +16,46 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     print(">>> Called MyApp");
     return MaterialApp(
+      debugShowCheckedModeBanner: false,
       title: 'Lunch Quest',
       darkTheme: ThemeData.dark(),
       theme: ThemeData.light(),
-      home: MyHomePage(title: 'Lunch Quest'),
+      initialRoute: "/",
+      routes: {
+        "/": (context) => ResponsiveBuilder(
+              // Use the widget
+              builder: (context, sizingInformation) {
+                // Check the sizing information here and return your UI
+                if (sizingInformation.deviceScreenType == DeviceScreenType.desktop) {
+                  return Scaffold(
+                    body: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          "assets/img/casual-life-3d-meditation-crystal-1.png",
+                          width: MediaQuery.of(context).size.width / 1.2,
+                        ),
+                        Text("개발중.."),
+                      ],
+                    ),
+                  );
+                }
+
+                if (sizingInformation.deviceScreenType == DeviceScreenType.watch) {
+                  return Container(color: Colors.yellow);
+                }
+
+                // if (sizingInformation.deviceScreenType == DeviceScreenType.tablet) {
+                //   return Container(color: Colors.red);
+                // }
+
+                return MyHomePage(title: 'Lunch Quest');
+              },
+            ),
+        "/about": (context) => AboutPage(),
+      },
     );
+    // MyHomePage(title: 'Lunch Quest'),
   }
 }
-
-
