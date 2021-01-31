@@ -1,6 +1,7 @@
-
-class User{
+class User {
   final String name;
   final String team;
-  User({this.name, this.team});
+  bool isCheck;
+
+  User({this.name, this.team, this.isCheck = false});
 }

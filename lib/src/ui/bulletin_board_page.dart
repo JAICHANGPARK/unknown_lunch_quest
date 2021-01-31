@@ -9,6 +9,7 @@ import 'package:flutter_lunch_quest/src/ui/bulletin_detail_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class BulletinBoardPage extends StatefulWidget {
   @override
@@ -28,9 +29,12 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
   @override
   void dispose() {
     // TODO: implement dispose
-    _streamSubscription.cancel();
-    _titleTextEditingController.dispose();
-    _contentTextEditingController.dispose();
+    if(_streamSubscription != null){
+      _streamSubscription?.cancel();
+    }
+
+    _titleTextEditingController?.dispose();
+    _contentTextEditingController?.dispose();
     _pc.close();
     super.dispose();
   }
@@ -45,7 +49,7 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
       DataSnapshot datasnapshot = e.snapshot;
       if (items.isNotEmpty) items.clear();
       datasnapshot.forEach((value) {
-        print(">>> e.key: ${value.key}");
+        // print(">>> e.key: ${value.key}");
 
         String k = value.key;
         String title = "";
@@ -54,7 +58,7 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
         int childCount = 0;
 
         value.forEach((k) {
-          print(">>> ${k.key} : ${k.val()}");
+          // print(">>> ${k.key} : ${k.val()}");
           if (k.key == "title") {
             title = k.val();
           }
@@ -65,7 +69,7 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
             dt = k.val();
           }
           if (k.key == "comments") {
-            print(k.numChildren());
+            // print(k.numChildren());
             childCount = k.numChildren();
           }
 
@@ -98,54 +102,53 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
         controller: _pc,
         minHeight: 0,
         maxHeight: MediaQuery.of(context).size.height / 1.6,
-        body: Column(
-          children: [
-            // ElevatedButton(
-            //   onPressed: () {
-            //     database
-            //         .ref("bulletin")
-            //         .child(items[1].mainKey.toString())
-            //         .child("comments")
-            //         .push()
-            //         .set({"datetime": "test", "content": "asdasd"});
-            //   },
-            //   child: Text("댓글 생성"),
-            // ),
-            Expanded(
-                child: items.length > 0
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ListView.separated(
-                            itemBuilder: (context, index) {
-                              return ListTile(
-                                onTap: () async {
-                                  _streamSubscription.pause();
-                                  await Navigator.of(context).push(MaterialPageRoute(
-                                      builder: (context) => BulletinDetailPage(items[index], database)));
-                                  _streamSubscription.resume();
-                                },
-                                leading: CircleAvatar(
-                                  child: Text("익명"),
-                                ),
-                                trailing: Text(
-                                  items[index].datetime,
-                                ),
-                                title: Text("${items[index].title} [${items[index].commentCount}]"),
-                                subtitle: Text(
-                                  "${items[index].content}",
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            },
-                            separatorBuilder: (context, index) {
-                              return Divider(
-                                height: 8,
-                              );
-                            },
-                            itemCount: items.length),
-                      )
-                    : Center(child: CircularProgressIndicator())),
-          ],
+        body: Padding(
+          padding: const EdgeInsets.fromLTRB(8,8,8,36),
+          child: Column(
+            children: [
+              // ElevatedButton(
+              //   onPressed: () {
+              //     database
+              //         .ref("bulletin")
+              //         .child(items[1].mainKey.toString())
+              //         .child("comments")
+              //         .push()
+              //         .set({"datetime": "test", "content": "asdasd"});
+              //   },
+              //   child: Text("댓글 생성"),
+              // ),
+              Expanded(
+                  child: items.length > 0
+                      ? ListView.separated(
+                          itemBuilder: (context, index) {
+                            return ListTile(
+                              onTap: () async {
+                                _streamSubscription.pause();
+                                await Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (context) => BulletinDetailPage(items[index], database)));
+                                _streamSubscription.resume();
+                              },
+                              leading: CircleAvatar(
+                                child: Text("익명"),
+                              ),
+                              trailing: Text("${timeago.format(DateTime.parse(items[index].datetime),
+                                  locale: "ko")}", style: TextStyle(fontSize: 12),),
+                              title: Text("${items[index].title} [${items[index].commentCount}]"),
+                              subtitle: Text(
+                                "${items[index].content}",
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            );
+                          },
+                          separatorBuilder: (context, index) {
+                            return Divider(
+                              height: 8,
+                            );
+                          },
+                          itemCount: items.length)
+                      : Center(child: CircularProgressIndicator())),
+            ],
+          ),
         ),
         panel: Column(
           children: [

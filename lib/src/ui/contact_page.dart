@@ -6,6 +6,7 @@ import 'package:flutter_lunch_quest/src/model/contact.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class ContactPage extends StatefulWidget {
   @override
@@ -22,7 +23,8 @@ class _ContactPageState extends State<ContactPage> {
   @override
   void dispose() {
     // TODO: implement dispose
-    dataStreamSubscription.cancel();
+    dataStreamSubscription?.cancel();
+    _textEditingController?.dispose();
     super.dispose();
   }
 
@@ -37,13 +39,12 @@ class _ContactPageState extends State<ContactPage> {
       if (contactList.isNotEmpty) contactList.clear();
       datasnapshot.forEach((e) {
         e.forEach((k){
-          print("${k.key} : ${k.val()}");
+          // print("${k.key} : ${k.val()}");
           contactList.add(Contact(content: k.val(), datetime: k.key));
         });
       });
       setState(() {
         contactList = contactList.reversed.toList();
-
       });
     });
   }
@@ -55,7 +56,7 @@ class _ContactPageState extends State<ContactPage> {
         title: Text("문의하기"),
       ),
       body: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: const EdgeInsets.only(left: 8, right: 8, bottom: 24, top: 8),
         child: Column(
           children: [
             Expanded(
@@ -95,6 +96,8 @@ class _ContactPageState extends State<ContactPage> {
                               contactList[index].content,
                               overflow: TextOverflow.ellipsis,
                             ),
+                            trailing: Text("${timeago.format(DateTime.parse(contactList[index].datetime),
+                            locale: "ko")}"),
                           );
                         },
                         separatorBuilder: (context, index) {
@@ -107,7 +110,7 @@ class _ContactPageState extends State<ContactPage> {
                         child: CircularProgressIndicator(),
                       )),
             SizedBox(
-              height: 48,
+              height: 32,
             ),
             TextField(
               controller: _textEditingController,

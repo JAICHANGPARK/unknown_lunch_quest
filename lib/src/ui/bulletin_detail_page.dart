@@ -6,6 +6,7 @@ import 'dart:async';
 
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:intl/intl.dart';
+import 'package:timeago/timeago.dart' as timeago;
 
 class BulletinDetailPage extends StatefulWidget {
   final Bulletin bulletin;
@@ -32,9 +33,9 @@ class _BulletinDetailPageState extends State<BulletinDetailPage> {
       DataSnapshot datasnapshot = e.snapshot;
       if(items.isNotEmpty) items.clear();
       datasnapshot.forEach((value) {
-        print(">>> value.key : ${value.key} , ${value.val()}");
+        // print(">>> value.key : ${value.key} , ${value.val()}");
         var data = value.val();
-        print(data);
+        // print(data);
         items.add(Contact(datetime: data["datetime"], content: data["content"]));
       });
       setState(() {});
@@ -52,6 +53,7 @@ class _BulletinDetailPageState extends State<BulletinDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: Text(widget.bulletin.title),
       ),
@@ -111,7 +113,7 @@ class _BulletinDetailPageState extends State<BulletinDetailPage> {
                               suffixIcon: IconButton(
                                 icon: Icon(Icons.send_outlined),
                                 onPressed: () async {
-                                  print(widget.bulletin.mainKey);
+                                  // print(widget.bulletin.mainKey);
 
                                   if(_textEditingController.text.length > 0){
                                     String dt = DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now());
@@ -126,7 +128,7 @@ class _BulletinDetailPageState extends State<BulletinDetailPage> {
 
                                     });
                                   }else{
-                                    print("dfs");
+                                    // print("dfs");
                                   }
 
                                 },
@@ -148,7 +150,8 @@ class _BulletinDetailPageState extends State<BulletinDetailPage> {
                                   items[index].content,
                                   style: TextStyle(fontSize: 16),
                                 ),
-                                trailing: Text(items[index].datetime),
+                                trailing: Text("${timeago.format(DateTime.parse(items[index].datetime),
+                                    locale: "ko")}"),
                               );
                             },
                             separatorBuilder: (context, index) {
