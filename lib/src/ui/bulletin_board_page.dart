@@ -261,6 +261,7 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
       floatingActionButton: FloatingActionButton(
+        tooltip: "작성하기",
         onPressed: () async {
           _pc.open();
           // String dt = DateFormat("yyyy-MM-dd HH:mm:ss").format(DateTime.now());
