@@ -1,5 +1,5 @@
 name: flutter_lunch_quest
-description: A new Flutter application.
+description: A Angel Robotics Lunch Quest App
 
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
@@ -26,9 +26,10 @@ dependencies:
   fluttertoast: ^7.1.6
   flutter_slidable: ^0.5.7
   sliding_up_panel: ^1.0.2
-
-
-
+  flutter_sparkline: any
+  timeago: ^2.0.29
+  slide_digital_clock: any
+  flutter_svg: ^0.19.2+1
 
 dev_dependencies:
   flutter_test:
