@@ -46,6 +46,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       String name = element.toString();
       enterUserList.add(mUser.User(name: name, team: ""));
     });
+
     setState(() {});
   }
 
@@ -369,7 +370,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           ),
           bottomNavigationBar: BottomAppBar(
             shape: CircularNotchedRectangle(),
-            notchMargin: 16.0,
+            notchMargin: 12.0,
             child: Container(
               height: 84,
               child: Row(
@@ -577,7 +578,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         children: [
           Image.asset(
             "assets/img/pixeltrue-space-discovery.png",
-            width: MediaQuery.of(context).size.width / 1.8,
+            width: MediaQuery.of(context).size.width / 1.6,
           ),
           SizedBox(
             height: 16,
