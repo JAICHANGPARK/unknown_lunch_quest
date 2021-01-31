@@ -132,6 +132,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   Row(
                     children: [
                       IconButton(
+                        tooltip: "메뉴",
                         iconSize: 32,
                         icon: Icon(Icons.menu),
                         onPressed: () {
@@ -267,6 +268,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 style: TextStyle(fontWeight: FontWeight.bold),
                                               ),
                                               IconButton(
+                                                  tooltip: "새로고침",
                                                   icon: Icon(Icons.refresh),
                                                   onPressed: () async {
                                                     setState(() {
@@ -290,53 +292,60 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             itemBuilder: (context, index) {
                                               return Slidable(
                                                 actionPane: SlidableScrollActionPane(),
-                                                child: ListTile(
-                                                  title: Text(enterUserList[index].name),
-                                                  // subtitle: Text(userList[index].team),
+                                                child: Tooltip(
+                                                  message: "${enterUserList[index].name}",
+                                                  child: ListTile(
+                                                    leading: Text(index.toString()),
+                                                    title: Text(enterUserList[index].name),
+                                                    // subtitle: Text(userList[index].team),
+                                                  ),
                                                 ),
                                                 secondaryActions: <Widget>[
-                                                  IconSlideAction(
-                                                      caption: 'Delete',
-                                                      color: Colors.red,
-                                                      icon: Icons.delete,
-                                                      onTap: () async {
-                                                        showDialog(
-                                                            context: context,
-                                                            builder: (context) {
-                                                              return AlertDialog(
-                                                                title: Text("경고"),
-                                                                content:
-                                                                    Text("${enterUserList[index].name} 님을 방에서 제거할까요?"),
-                                                                actions: [
-                                                                  ElevatedButton(
-                                                                      onPressed: () {
-                                                                        Navigator.of(context).pop();
-                                                                      },
-                                                                      child: Text("취소")),
-                                                                  ElevatedButton(
-                                                                      onPressed: () async {
-                                                                        List<mUser.User> copyList = enterUserList;
-                                                                        copyList.removeWhere((element) =>
-                                                                            element.name == enterUserList[index].name);
+                                                  Tooltip(
+                                                    message: '삭제하기',
+                                                    child: IconSlideAction(
+                                                        caption: 'Delete',
+                                                        color: Colors.red,
+                                                        icon: Icons.delete,
+                                                        onTap: () async {
+                                                          showDialog(
+                                                              context: context,
+                                                              builder: (context) {
+                                                                return AlertDialog(
+                                                                  title: Text("경고"),
+                                                                  content:
+                                                                      Text("${enterUserList[index].name} 님을 방에서 제거할까요?"),
+                                                                  actions: [
+                                                                    ElevatedButton(
+                                                                        onPressed: () {
+                                                                          Navigator.of(context).pop();
+                                                                        },
+                                                                        child: Text("취소")),
+                                                                    ElevatedButton(
+                                                                        onPressed: () async {
+                                                                          List<mUser.User> copyList = enterUserList;
+                                                                          copyList.removeWhere((element) =>
+                                                                              element.name == enterUserList[index].name);
 
-                                                                        await firestore
-                                                                            .collection("lunch")
-                                                                            .doc(currentDate)
-                                                                            .update(data: {
-                                                                          "users": copyList.map((e) => e.name).toList()
-                                                                        });
+                                                                          await firestore
+                                                                              .collection("lunch")
+                                                                              .doc(currentDate)
+                                                                              .update(data: {
+                                                                            "users": copyList.map((e) => e.name).toList()
+                                                                          });
 
-                                                                        setState(() {
-                                                                          enterUserList.clear();
-                                                                        });
-                                                                        await refreshEnterUserList();
-                                                                        Navigator.of(context).pop();
-                                                                      },
-                                                                      child: Text("네")),
-                                                                ],
-                                                              );
-                                                            });
-                                                      }),
+                                                                          setState(() {
+                                                                            enterUserList.clear();
+                                                                          });
+                                                                          await refreshEnterUserList();
+                                                                          Navigator.of(context).pop();
+                                                                        },
+                                                                        child: Text("네")),
+                                                                  ],
+                                                                );
+                                                              });
+                                                        }),
+                                                  ),
                                                 ],
                                               );
                                             }),
@@ -392,132 +401,145 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   Expanded(
                       child: Padding(
                     padding: const EdgeInsets.only(left: 64, right: 16),
-                    child: MaterialButton(
-                      padding: EdgeInsets.symmetric(vertical: 16),
-                      child: Text("참가신청", style: TextStyle(color: Colors.white, fontSize: 20)),
-                      color: Colors.black,
-                      onPressed: existRoom
-                          ? () {
-                              if (userList.isNotEmpty) userList.clear();
-                              print(
-                                  "FirebaseInstance.instance.allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
+                    child: Tooltip(
+                      message: "참가신청",
+                      child: MaterialButton(
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        child: Text("참가신청", style: TextStyle(color: Colors.white, fontSize: 20)),
+                        color: Colors.black,
+                        onPressed: existRoom
+                            ? () {
+                                if (userList.isNotEmpty) userList.clear();
+                                print(
+                                    "FirebaseInstance.instance.allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
 
-                              userList.addAll(FirebaseInstance.instance.allUserList);
-                              print("userList size: ${userList.length}");
-                              if (userList.length > 0) {
-                                List<mUser.User> leftUserItems = userList;
-                                print("enterUserList size: ${enterUserList.length}");
-                                enterUserList.forEach((element) {
-                                  leftUserItems.removeWhere((v) => v.name == element.name);
-                                  // userList.where((v) => v.name != element.name).toList();
-                                  // 중복된 값을 제거해야함. 이미 포함된 사용자를 제외하고 값을 얻고자함.
-                                });
-                                for(int i =0; i<leftUserItems.length; i++){
-                                  leftUserItems[i].isCheck = false;
-                                }
+                                userList.addAll(FirebaseInstance.instance.allUserList);
+                                print("userList size: ${userList.length}");
+                                if (userList.length > 0) {
+                                  List<mUser.User> leftUserItems = userList;
+                                  print("enterUserList size: ${enterUserList.length}");
+                                  enterUserList.forEach((element) {
+                                    leftUserItems.removeWhere((v) => v.name == element.name);
+                                    // userList.where((v) => v.name != element.name).toList();
+                                    // 중복된 값을 제거해야함. 이미 포함된 사용자를 제외하고 값을 얻고자함.
+                                  });
+                                  for (int i = 0; i < leftUserItems.length; i++) {
+                                    leftUserItems[i].isCheck = false;
+                                  }
 
-                                showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (context) {
-                                      return Container(
-                                        height: MediaQuery.of(context).size.height / 1.5,
-                                        child: StatefulBuilder(
-                                          builder: (BuildContext context, void Function(void Function()) setState) {
-                                            return Column(
-                                              children: [
-                                                SizedBox(height: 16,),
-                                                Container(
-                                                  height: 4,
-                                                  width: 32,
-                                                  color: Colors.grey,
-                                                ),
-                                                Padding(
-                                                  padding: const EdgeInsets.symmetric(vertical: 16),
-                                                  child: Text("대기인원 목록", style: TextStyle(
-                                                    fontSize: 16,
-                                                    fontWeight: FontWeight.bold
-                                                  ),),
-                                                ),
-                                                Container(
-                                                  height: MediaQuery.of(context).size.height / 2.1,
-                                                  child: ListView.separated(
-                                                    itemCount: leftUserItems.length,
-                                                    itemBuilder: (context, index) {
-                                                      return CheckboxListTile(
-                                                        title: Text(leftUserItems[index].name),
-                                                        subtitle: Text(leftUserItems[index].team),
-                                                        onChanged: (bool value) {
-                                                          print(value);
-                                                          setState(() {
-                                                            leftUserItems[index].isCheck = value;
-                                                          });
-                                                        },
-                                                        value: leftUserItems[index].isCheck,
-                                                      );
-                                                    },
-                                                    separatorBuilder: (BuildContext context, int index) {
-                                                      return Divider(
-                                                        height: 6,
-                                                      );
-                                                    },
+                                  showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (context) {
+                                        return Container(
+                                          height: MediaQuery.of(context).size.height / 1.5,
+                                          child: StatefulBuilder(
+                                            builder: (BuildContext context, void Function(void Function()) setState) {
+                                              return Column(
+                                                children: [
+                                                  SizedBox(
+                                                    height: 16,
                                                   ),
-                                                ),
-                                                SizedBox(height: 16,),
-                                                GestureDetector(
-                                                  onTap: () async {
-                                                    List<mUser.User> checkUserList = leftUserItems
-                                                        .where((element) => element.isCheck == true)
-                                                        .toList();
-                                                    if (checkUserList.length > 0) {
-                                                      checkUserList.addAll(enterUserList);
-                                                      List<String> nameList = [];
-                                                      checkUserList.forEach((u) {
-                                                        nameList.add(u.name);
-                                                      });
-                                                      print(checkUserList.length);
-                                                      await firestore
-                                                          .collection("lunch")
-                                                          .doc(currentDate)
-                                                          .update(data: {"users": nameList});
-
-                                                      setState(() {
-                                                        enterUserList.clear();
-                                                      });
-                                                      await refreshEnterUserList();
-                                                      Navigator.of(context).pop();
-                                                      // await firestore.collection("lunch").doc(currentDate).set({"users": []});
-                                                    } else {
-                                                      Fluttertoast.showToast(
-                                                          msg: "1명 이상 선택해야 참가가 가능합니다.", webPosition: "center");
-                                                      Navigator.of(context).pop();
-
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    height: 72,
-                                                    decoration: BoxDecoration(color: Colors.black),
-                                                    child: Center(
-                                                      child: Text(
-                                                        "신청하기",
-                                                        style: TextStyle(color: Colors.white, fontSize: 18),
-                                                      ),
+                                                  Container(
+                                                    height: 4,
+                                                    width: 32,
+                                                    color: Colors.grey,
+                                                  ),
+                                                  Padding(
+                                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                                    child: Text(
+                                                      "대기인원 목록",
+                                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                                     ),
                                                   ),
-                                                )
-                                              ],
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    });
-                              } else {
-                                Fluttertoast.showToast(
-                                  msg: "정보를 가져오고 있습니다. 잠시만 기다려주세요",
-                                );
+                                                  Container(
+                                                    height: MediaQuery.of(context).size.height / 2.1,
+                                                    child: ListView.separated(
+                                                      itemCount: leftUserItems.length,
+                                                      itemBuilder: (context, index) {
+                                                        return Tooltip(
+                                                          message: '${leftUserItems[index].name}',
+                                                          child: CheckboxListTile(
+                                                            title: Text(leftUserItems[index].name),
+                                                            subtitle: Text(leftUserItems[index].team),
+                                                            onChanged: (bool value) {
+                                                              print(value);
+                                                              setState(() {
+                                                                leftUserItems[index].isCheck = value;
+                                                              });
+                                                            },
+                                                            value: leftUserItems[index].isCheck,
+
+                                                          ),
+                                                        );
+                                                      },
+                                                      separatorBuilder: (BuildContext context, int index) {
+                                                        return Divider(
+                                                          height: 6,
+                                                        );
+                                                      },
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    height: 16,
+                                                  ),
+                                                  Tooltip(
+                                                    message: '신청하기',
+                                                    child: GestureDetector(
+                                                      onTap: () async {
+                                                        List<mUser.User> checkUserList = leftUserItems
+                                                            .where((element) => element.isCheck == true)
+                                                            .toList();
+                                                        if (checkUserList.length > 0) {
+                                                          checkUserList.addAll(enterUserList);
+                                                          List<String> nameList = [];
+                                                          checkUserList.forEach((u) {
+                                                            nameList.add(u.name);
+                                                          });
+                                                          print(checkUserList.length);
+                                                          await firestore
+                                                              .collection("lunch")
+                                                              .doc(currentDate)
+                                                              .update(data: {"users": nameList});
+
+                                                          setState(() {
+                                                            enterUserList.clear();
+                                                          });
+                                                          await refreshEnterUserList();
+                                                          Navigator.of(context).pop();
+                                                          // await firestore.collection("lunch").doc(currentDate).set({"users": []});
+                                                        } else {
+                                                          Fluttertoast.showToast(
+                                                              msg: "1명 이상 선택해야 참가가 가능합니다.", webPosition: "center");
+                                                          Navigator.of(context).pop();
+                                                        }
+                                                      },
+                                                      child: Container(
+                                                        height: 72,
+                                                        decoration: BoxDecoration(color: Colors.black),
+                                                        child: Center(
+                                                          child: Text(
+                                                            "신청하기",
+                                                            style: TextStyle(color: Colors.white, fontSize: 18),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        );
+                                      });
+                                } else {
+                                  Fluttertoast.showToast(
+                                    msg: "정보를 가져오고 있습니다. 잠시만 기다려주세요",
+                                  );
+                                }
                               }
-                            }
-                          : null,
+                            : null,
+                      ),
                     ),
                   )),
                 ],
@@ -561,7 +583,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 Fluttertoast.showToast(msg: "이미 생성된 방이 존재합니다.", webPosition: "center");
               }
             },
-            tooltip: 'Increment',
+            tooltip: '방만들기',
             child: Icon(Icons.add),
           ), // This trailing comma makes auto-formatting nicer for build methods.
         ),
@@ -595,6 +617,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   List<Widget> buildDrawerMenuWidgets() {
     return [
+      Image.asset(
+        "assets/img/animation_640_kkkzx3os.gif",
+        width: MediaQuery.of(context).size.width / 2.5,
+        fit: BoxFit.fitWidth,
+      ),
       Row(
         children: [
           Text(
@@ -608,7 +635,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ],
       ),
       Divider(
+        height: 8,
         endIndent: 32,
+        color: Colors.grey,
       ),
       ListTile(
         title: Text(
@@ -619,51 +648,80 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           Icons.list_rounded,
           color: Colors.black,
         ),
-        onTap: () {},
+        onTap: () {
+          showDialog(
+              context: context,
+              builder: (context) {
+                return AlertDialog(
+                  content: Text("개발중."),
+                  actions: [
+                    Tooltip(
+                        message: '확인',
+                        child: ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("확인"),
+                        ))
+                  ],
+                );
+              });
+        },
       ),
       Divider(
+        height: 8,
         endIndent: 32,
+        color: Colors.grey,
       ),
-      ListTile(
-        title: Text(
-          "게시판",
-          style: TextStyle(color: Colors.black),
+      Tooltip(
+        message: "게시판이동",
+        child: ListTile(
+          title: Text(
+            "게시판",
+            style: TextStyle(color: Colors.black),
+          ),
+          leading: Icon(
+            Icons.info_outline,
+            color: Colors.black,
+          ),
+          onTap: () async {
+            _controller.close();
+            await Future.delayed(Duration(milliseconds: 500));
+            Navigator.of(context).pushNamed("/bulletin_board");
+          },
         ),
-        leading: Icon(
-          Icons.info_outline,
-          color: Colors.black,
-        ),
-        onTap: () async {
-          _controller.close();
-          await Future.delayed(Duration(milliseconds: 500));
-          Navigator.of(context).pushNamed("/bulletin_board");
-        },
       ),
-      ListTile(
-        title: Text(
-          "문의하기",
-          style: TextStyle(color: Colors.black),
+      Tooltip(
+        message: "문의하기 이동",
+        child: ListTile(
+          title: Text(
+            "문의하기",
+            style: TextStyle(color: Colors.black),
+          ),
+          leading: Icon(
+            Icons.info_outline,
+            color: Colors.black,
+          ),
+          onTap: () {
+            Navigator.of(context).pushNamed("/contact");
+          },
         ),
-        leading: Icon(
-          Icons.info_outline,
-          color: Colors.black,
-        ),
-        onTap: () {
-          Navigator.of(context).pushNamed("/contact");
-        },
       ),
-      ListTile(
-        title: Text(
-          "About",
-          style: TextStyle(color: Colors.black),
+      Tooltip(
+        message: '개발 정보',
+        child: ListTile(
+          title: Text(
+            "About",
+            style: TextStyle(color: Colors.black),
+          ),
+          leading: Icon(
+            Icons.info_outline,
+            color: Colors.black,
+          ),
+          onTap: () {
+            Navigator.of(context).pushNamed("/about");
+          },
         ),
-        leading: Icon(
-          Icons.info_outline,
-          color: Colors.black,
-        ),
-        onTap: () {
-          Navigator.of(context).pushNamed("/about");
-        },
       )
     ];
   }
