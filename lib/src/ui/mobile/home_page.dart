@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:fancy_drawer/fancy_drawer.dart';
 import 'package:firebase/firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_date_picker_timeline/flutter_date_picker_timeline.dart';
 import 'package:flutter_lunch_quest/src/model/user.dart' as mUser;
 import 'package:flutter_lunch_quest/src/remote/api.dart';
@@ -11,6 +12,7 @@ import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fluttertoast/fluttertoast_web.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:slide_digital_clock/slide_digital_clock.dart';
 
@@ -33,6 +35,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   bool isOpen = false;
   bool existRoom = false;
   bool isPlaying = false;
+  bool isClosed = false;
 
   List<mUser.User> userList = [];
   List<mUser.User> enterUserList = [];
@@ -50,6 +53,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {});
   }
 
+  Future onSetRoomClose(String date) async {
+    await firestore.collection("lunch").doc(date).update(
+      data: {"isClosed": true},
+    );
+  }
+
+  Future onCheckRoomClosed(String date) async {
+    DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(date).get();
+    isClosed = await querySnapshot.data()["isClosed"];
+    setState(() {});
+  }
+
+  //TODO: 사용자랑 생성된 날짜에 데이터가 있는지 확인
   Future checkExistRoom(String date) async {
     if (enterUserList.length > 0) enterUserList.clear();
     DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(date).get();
@@ -57,6 +73,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       existRoom = false;
     } else {
       existRoom = true;
+      isClosed = querySnapshot.data()["isClosed"];
+      print(isClosed);
       // print("querySnapshot.data() : ${querySnapshot.data()}");
       querySnapshot.data()["users"].forEach((element) {
         String name = element.toString();
@@ -70,6 +88,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     QuerySnapshot querySnapshot = await firestore.collection("ticket").get();
     // print(querySnapshot.docs.first.data()["count"]);
     return querySnapshot.docs.first.data()["count"];
+  }
+
+  Future<int> updateTotalTicketCount(int v) async {
+    int total = await fetchTotalTicketCount();
+    print(total);
+    QuerySnapshot querySnapshot = await firestore.collection("ticket").get();
+    // print(querySnapshot.docs.first.data()["count"]);
+    print(querySnapshot.docs.first.id);
+    await querySnapshot.docs.first.ref.update(data: {"count": (total - v)});
   }
 
   @override
@@ -110,8 +137,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     _controller.dispose(); // Dispose c
     super.dispose();
   }
-
-  List<bool> _isChecked;
 
   @override
   Widget build(BuildContext context) {
@@ -203,20 +228,46 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           child: Padding(
                             padding: const EdgeInsets.all(12.0),
                             child: totalTicket != null
-                                ? Row(
-                                    children: [
-                                      Text(
-                                        "총 식권수",
-                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                      ),
-                                      Spacer(),
-                                      Text(
-                                        "$totalTicket 장",
-                                        style: TextStyle(
-                                          fontSize: 16,
+                                ? GestureDetector(
+                                    onTap: () {
+                                      TextEditingController tmp = TextEditingController();
+                                      showDialog(
+                                          context: _drawerKey.currentContext,
+                                          builder: (context) => AlertDialog(
+                                                content: TextField(
+                                                  controller: tmp,
+                                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                                ),
+                                                actions: [
+                                                  ElevatedButton(
+                                                    onPressed: () {
+                                                      if (tmp.text.length > 0) {
+                                                      } else {}
+                                                    },
+                                                    child: Text("추가하기"),
+                                                  ),
+                                                  ElevatedButton(
+                                                    onPressed: () {},
+                                                    child: Text("확인"),
+                                                  ),
+                                                ],
+                                              ));
+                                    },
+                                    child: Row(
+                                      children: [
+                                        Text(
+                                          "총 식권수",
+                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                         ),
-                                      ),
-                                    ],
+                                        Spacer(),
+                                        Text(
+                                          "$totalTicket 장",
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   )
                                 : Center(child: CircularProgressIndicator()),
                           ),
@@ -231,144 +282,193 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     height: MediaQuery.of(context).size.height / 1.6,
                     width: MediaQuery.of(context).size.width,
                     child: existRoom
-                        ? Card(
-                            child: enterUserList.length > 0
-                                ? Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                "총 인원수",
-                                                style: TextStyle(fontWeight: FontWeight.bold),
-                                              ),
-                                              Text(
-                                                "${enterUserList.length}명",
-                                                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-                                              )
-                                            ],
-                                          ),
+                        ? isClosed
+                            ? Card(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Image.asset(
+                                      "assets/img/pixeltrue-welcome.png",
+                                      width: MediaQuery.of(context).size.width / 1.5,
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(8.0),
+                                      child: Text(
+                                        "퀘스트가 종료되었습니다.",
+                                        style: TextStyle(
+                                          fontSize: 18,
                                         ),
                                       ),
-                                      Divider(
-                                        height: 6,
-                                      ),
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.all(8.0),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Text(
-                                                "참가인원목록",
-                                                style: TextStyle(fontWeight: FontWeight.bold),
-                                              ),
-                                              IconButton(
-                                                  tooltip: "새로고침",
-                                                  icon: Icon(Icons.refresh),
-                                                  onPressed: () async {
-                                                    setState(() {
-                                                      enterUserList.clear();
-                                                    });
-                                                    await refreshEnterUserList();
-                                                  })
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      Expanded(
-                                        flex: 10,
-                                        child: ListView.separated(
-                                            separatorBuilder: (context, index) {
-                                              return Divider(
-                                                height: 10,
-                                              );
-                                            },
-                                            itemCount: enterUserList.length,
-                                            itemBuilder: (context, index) {
-                                              return Slidable(
-                                                actionPane: SlidableScrollActionPane(),
-                                                child: Tooltip(
-                                                  message: "${enterUserList[index].name}",
-                                                  child: ListTile(
-                                                    leading: Text(index.toString()),
-                                                    title: Text(enterUserList[index].name),
-                                                    // subtitle: Text(userList[index].team),
-                                                  ),
-                                                ),
-                                                secondaryActions: <Widget>[
-                                                  Tooltip(
-                                                    message: '삭제하기',
-                                                    child: IconSlideAction(
-                                                        caption: 'Delete',
-                                                        color: Colors.red,
-                                                        icon: Icons.delete,
-                                                        onTap: () async {
-                                                          showDialog(
-                                                              context: context,
-                                                              builder: (context) {
-                                                                return AlertDialog(
-                                                                  title: Text("경고"),
-                                                                  content:
-                                                                      Text("${enterUserList[index].name} 님을 방에서 제거할까요?"),
-                                                                  actions: [
-                                                                    ElevatedButton(
-                                                                        onPressed: () {
-                                                                          Navigator.of(context).pop();
-                                                                        },
-                                                                        child: Text("취소")),
-                                                                    ElevatedButton(
-                                                                        onPressed: () async {
-                                                                          List<mUser.User> copyList = enterUserList;
-                                                                          copyList.removeWhere((element) =>
-                                                                              element.name == enterUserList[index].name);
-
-                                                                          await firestore
-                                                                              .collection("lunch")
-                                                                              .doc(currentDate)
-                                                                              .update(data: {
-                                                                            "users": copyList.map((e) => e.name).toList()
-                                                                          });
-
-                                                                          setState(() {
-                                                                            enterUserList.clear();
-                                                                          });
-                                                                          await refreshEnterUserList();
-                                                                          Navigator.of(context).pop();
-                                                                        },
-                                                                        child: Text("네")),
-                                                                  ],
-                                                                );
-                                                              });
+                                    ),
+                                    SizedBox(
+                                      height: 16,
+                                    ),
+                                    MaterialButton(
+                                      onPressed: () {
+                                        showDialog(
+                                            context: _drawerKey.currentContext,
+                                            builder: (context) => AlertDialog(
+                                                  title: Text("참가인원(${enterUserList.length}명)"),
+                                                  content: SizedBox(
+                                                    height: MediaQuery.of(context).size.height / 2.5,
+                                                    width: MediaQuery.of(context).size.width / 1.3,
+                                                    child: ListView.builder(
+                                                        itemCount: enterUserList.length,
+                                                        shrinkWrap: true,
+                                                        itemBuilder: (context, index) {
+                                                          return ListTile(
+                                                            leading: Text("$index"),
+                                                            title: Text("${enterUserList[index].name}"),
+                                                          );
                                                         }),
                                                   ),
-                                                ],
-                                              );
-                                            }),
+                                                  actions: [
+                                                    ElevatedButton(
+                                                        onPressed: () {
+                                                          Navigator.of(context).pop();
+                                                        },
+                                                        child: Text("확인"))
+                                                  ],
+                                                ));
+                                      },
+                                      color: Colors.black,
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                        child: Text(
+                                          "참가인원보기",
+                                          style: TextStyle(fontSize: 16, color: Colors.white),
+                                        ),
                                       ),
-                                    ],
-                                  )
-                                : buildLoadingWidget("참가 대기중"))
-                        : Card(
-                            child: Stack(
-                              children: [
-                                Positioned(left: 0, right: 0, bottom: 0, top: 0, child: buildLoadingWidget("생성된 방 없음")),
-                                Positioned(
-                                  child: Container(
-                                    color: Colors.black.withOpacity(0.35),
-                                  ),
-                                  left: 0,
-                                  right: 0,
-                                  bottom: 0,
-                                  top: 0,
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
+                              )
+                            : Card(
+                                child: enterUserList.length > 0
+                                    ? Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Expanded(
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "총 인원수",
+                                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                                  ),
+                                                  Text(
+                                                    "${enterUserList.length}명",
+                                                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                                  )
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Divider(
+                                            height: 6,
+                                          ),
+                                          Expanded(
+                                            child: Padding(
+                                              padding: const EdgeInsets.all(8.0),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  Text(
+                                                    "참가인원목록",
+                                                    style: TextStyle(fontWeight: FontWeight.bold),
+                                                  ),
+                                                  IconButton(
+                                                      tooltip: "새로고침",
+                                                      icon: Icon(Icons.refresh),
+                                                      onPressed: () async {
+                                                        setState(() {
+                                                          enterUserList.clear();
+                                                        });
+                                                        await refreshEnterUserList();
+                                                      })
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 10,
+                                            child: ListView.separated(
+                                                separatorBuilder: (context, index) {
+                                                  return Divider(
+                                                    height: 10,
+                                                  );
+                                                },
+                                                itemCount: enterUserList.length,
+                                                itemBuilder: (context, index) {
+                                                  return Slidable(
+                                                    actionPane: SlidableScrollActionPane(),
+                                                    child: Tooltip(
+                                                      message: "${enterUserList[index].name}",
+                                                      child: ListTile(
+                                                        leading: Text(index.toString()),
+                                                        title: Text(enterUserList[index].name),
+                                                        // subtitle: Text(userList[index].team),
+                                                      ),
+                                                    ),
+                                                    secondaryActions: <Widget>[
+                                                      Tooltip(
+                                                        message: '삭제하기',
+                                                        child: IconSlideAction(
+                                                            caption: 'Delete',
+                                                            color: Colors.red,
+                                                            icon: Icons.delete,
+                                                            onTap: () async {
+                                                              showDialog(
+                                                                  context: context,
+                                                                  builder: (context) {
+                                                                    return AlertDialog(
+                                                                      title: Text("경고"),
+                                                                      content: Text(
+                                                                          "${enterUserList[index].name} 님을 방에서 제거할까요?"),
+                                                                      actions: [
+                                                                        ElevatedButton(
+                                                                            onPressed: () {
+                                                                              Navigator.of(context).pop();
+                                                                            },
+                                                                            child: Text("취소")),
+                                                                        ElevatedButton(
+                                                                            onPressed: () async {
+                                                                              List<mUser.User> copyList = enterUserList;
+                                                                              copyList.removeWhere((element) =>
+                                                                                  element.name ==
+                                                                                  enterUserList[index].name);
+
+                                                                              await firestore
+                                                                                  .collection("lunch")
+                                                                                  .doc(currentDate)
+                                                                                  .update(data: {
+                                                                                "users":
+                                                                                    copyList.map((e) => e.name).toList()
+                                                                              });
+
+                                                                              setState(() {
+                                                                                enterUserList.clear();
+                                                                              });
+                                                                              await refreshEnterUserList();
+                                                                              Navigator.of(context).pop();
+                                                                            },
+                                                                            child: Text("네")),
+                                                                      ],
+                                                                    );
+                                                                  });
+                                                            }),
+                                                      ),
+                                                    ],
+                                                  );
+                                                }),
+                                          ),
+                                        ],
+                                      )
+                                    : buildLoadingWidget("참가 대기중"))
+                        : buildEmptyRoomWidget(),
                   ),
                   SizedBox(
                     height: 24,
@@ -395,7 +495,53 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           style: TextStyle(fontSize: 20),
                         ),
                       ),
-                      onPressed: existRoom ? () {} : null,
+                      onPressed: existRoom
+                          ? () {
+                              if (isClosed) {
+                                showDialog(
+                                    context: _drawerKey.currentContext,
+                                    builder: (context) => AlertDialog(
+                                          title: Text("안내"),
+                                          content: Text(
+                                            "이미 종료된 방입니다.",
+                                          ),
+                                          actions: [
+                                            ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("확인")),
+                                          ],
+                                        ));
+                              } else {
+                                showDialog(
+                                    context: _drawerKey.currentContext,
+                                    builder: (context) => AlertDialog(
+                                          title: Text("퀘스트종료"),
+                                          content: Text(
+                                            "마감하고 방을 닫을까요? 한번 닫으면 다시 열수 없습니다. 주의해주세요",
+                                          ),
+                                          actions: [
+                                            ElevatedButton(
+                                                onPressed: () async {
+                                                  await onSetRoomClose(currentDate);
+                                                  await onCheckRoomClosed(currentDate);
+                                                  await updateTotalTicketCount(enterUserList.length);
+                                                  totalTicket = await fetchTotalTicketCount();
+                                                  setState(() {});
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("확인")),
+                                            ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("취소")),
+                                          ],
+                                        ));
+                              }
+                            }
+                          : null,
                     ),
                   )),
                   Expanded(
@@ -469,7 +615,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                               });
                                                             },
                                                             value: leftUserItems[index].isCheck,
-
                                                           ),
                                                         );
                                                       },
@@ -593,6 +738,25 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     );
   }
 
+  Widget buildEmptyRoomWidget() {
+    return Card(
+      child: Stack(
+        children: [
+          Positioned(left: 0, right: 0, bottom: 0, top: 0, child: buildLoadingWidget("생성된 방 없음")),
+          Positioned(
+            child: Container(
+              color: Colors.black.withOpacity(0.35),
+            ),
+            left: 0,
+            right: 0,
+            bottom: 0,
+            top: 0,
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget buildLoadingWidget(String msg) {
     return Center(
       child: Column(
@@ -635,13 +799,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         ],
       ),
       Divider(
-        height: 8,
+        height: 4,
         endIndent: 32,
         color: Colors.grey,
       ),
       ListTile(
         title: Text(
-          "데이터",
+          "기록/데이터",
           style: TextStyle(color: Colors.black),
         ),
         leading: Icon(
@@ -649,27 +813,29 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           color: Colors.black,
         ),
         onTap: () {
-          showDialog(
-              context: context,
-              builder: (context) {
-                return AlertDialog(
-                  content: Text("개발중."),
-                  actions: [
-                    Tooltip(
-                        message: '확인',
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: Text("확인"),
-                        ))
-                  ],
-                );
-              });
+          Navigator.of(context).pushNamed("/data/record");
+          // showDialog(
+          //     context: context,
+          //     builder: (context) {
+          //
+          //       return AlertDialog(
+          //         content: Text("개발중."),
+          //         actions: [
+          //           Tooltip(
+          //               message: '확인',
+          //               child: ElevatedButton(
+          //                 onPressed: () {
+          //                   Navigator.of(context).pop();
+          //                 },
+          //                 child: Text("확인"),
+          //               ))
+          //         ],
+          //       );
+          //     });
         },
       ),
       Divider(
-        height: 8,
+        height: 4,
         endIndent: 32,
         color: Colors.grey,
       ),
@@ -681,7 +847,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             style: TextStyle(color: Colors.black),
           ),
           leading: Icon(
-            Icons.info_outline,
+            Icons.developer_board_outlined,
             color: Colors.black,
           ),
           onTap: () async {
@@ -699,11 +865,35 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             style: TextStyle(color: Colors.black),
           ),
           leading: Icon(
-            Icons.info_outline,
+            Icons.mode_edit,
             color: Colors.black,
           ),
           onTap: () {
             Navigator.of(context).pushNamed("/contact");
+          },
+        ),
+      ),
+      Divider(
+        height: 4,
+        endIndent: 32,
+        color: Colors.grey,
+      ),
+      Tooltip(
+        message: '메뉴선택',
+        child: ListTile(
+          title: Text(
+            "메뉴선택",
+            style: TextStyle(color: Colors.black),
+          ),
+          leading: Icon(
+            Icons.restaurant_menu,
+            color: Colors.black,
+          ),
+          onTap: () {
+            showDialog(context: _drawerKey.currentContext, builder: (context)=> AlertDialog(
+              content: Image.asset("assets/img/food_table_01.png"),
+            ));
+            // Navigator.of(context).pushNamed("/about");
           },
         ),
       ),

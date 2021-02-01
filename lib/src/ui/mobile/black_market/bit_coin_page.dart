@@ -3,7 +3,8 @@ import 'package:flutter_lunch_quest/src/model/bit_coin.dart';
 import 'package:flutter_lunch_quest/src/model/coingeko.dart';
 import 'package:flutter_lunch_quest/src/model/exchage_rate.dart';
 import 'package:flutter_lunch_quest/src/remote/coin_api.dart';
-import 'package:flutter_lunch_quest/src/ui/black_market/coin_detail_page.dart';
+
+import 'coin_detail_page.dart';
 
 class BitCoinPage extends StatefulWidget {
   @override

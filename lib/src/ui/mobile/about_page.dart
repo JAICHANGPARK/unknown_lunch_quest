@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_lunch_quest/src/ui/common/web_network_image.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
 class AboutPage extends StatefulWidget {

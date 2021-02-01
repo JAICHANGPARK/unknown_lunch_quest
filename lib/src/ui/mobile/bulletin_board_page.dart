@@ -5,11 +5,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lunch_quest/src/model/bulletin.dart';
 import 'package:flutter_lunch_quest/src/model/contact.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
-import 'package:flutter_lunch_quest/src/ui/bulletin_detail_page.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:sliding_up_panel/sliding_up_panel.dart';
 import 'package:timeago/timeago.dart' as timeago;
+
+import 'bulletin_detail_page.dart';
 
 class BulletinBoardPage extends StatefulWidget {
   @override
