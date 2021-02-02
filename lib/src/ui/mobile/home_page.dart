@@ -714,6 +714,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                                       "\n제가 문자로 바로 전달할 수 있도록 도와줄게요."),
                                                                                   TimePickerSpinner(
                                                                                     is24HourMode: true,
+                                                                                    highlightedTextStyle: TextStyle(
+                                                                                      color: Theme.of(context).accentColor,
+                                                                                      fontSize: 32
+                                                                                    ),
+                                                                                    normalTextStyle: TextStyle(
+                                                                                        color: Theme.of(context).accentColor,
+                                                                                        fontSize: 32
+                                                                                    ),
+
                                                                                     onTimeChange: (time) {
                                                                                       bentoTime = DateFormat("HH시mm분")
                                                                                           .format(time);
@@ -730,7 +739,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                                 ElevatedButton(
                                                                                     onPressed: () async {
                                                                                       String url =
-                                                                                          'sms:010&body=안녕하세요 6층 엔젤로보틱스 ${bentoUserLength}명 ${bentoTime}에 도시락 받으러갈게요!';
+                                                                                          'sms:010&body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
                                                                                       launch(url);
                                                                                       Navigator.of(context).pop();
                                                                                     },
@@ -740,7 +749,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                                     // Fluttertoast.showToast(
                                                                                     //     msg: "웹이에요");
                                                                                     String url =
-                                                                                        'sms:010?body=안녕하세요 6층 엔젤로보틱스 ${bentoUserLength}명 ${bentoTime}에 도시락 받으러갈게요!';
+                                                                                        'sms:010?body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
                                                                                     launch(url);
                                                                                     Navigator.of(context).pop();
                                                                                   },
