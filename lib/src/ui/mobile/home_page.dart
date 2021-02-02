@@ -607,7 +607,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         isScrollControlled: true,
                                         builder: (context) {
                                           return Container(
-                                            height: MediaQuery.of(context).size.height / 1.5,
+                                            height: MediaQuery.of(context).size.height / 1.35,
                                             child: StatefulBuilder(
                                               builder: (BuildContext context, void Function(void Function()) setState) {
                                                 return Column(
@@ -628,7 +628,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                       ),
                                                     ),
                                                     Container(
-                                                      height: MediaQuery.of(context).size.height / 2.1,
+                                                      height: MediaQuery.of(context).size.height / 2,
                                                       child: ListView.separated(
                                                         itemCount: leftUserItems.length,
                                                         itemBuilder: (context, index) {
