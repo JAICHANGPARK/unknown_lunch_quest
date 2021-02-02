@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:fancy_drawer/fancy_drawer.dart';
 import 'package:firebase/firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_date_picker_timeline/flutter_date_picker_timeline.dart';
@@ -10,11 +12,14 @@ import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_lunch_quest/src/utils/character_style.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:fluttertoast/fluttertoast_web.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:slide_digital_clock/slide_digital_clock.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:web_browser_detect/web_browser_detect.dart';
 
 import 'about_page.dart';
 
@@ -27,6 +32,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
+  final browser = Browser();
   GlobalKey<ScaffoldState> _drawerKey = GlobalKey();
   StreamSubscription<QuerySnapshot> _streamSubscription;
   Firestore firestore = FirebaseInstance.instance.store;
@@ -39,6 +45,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   List<mUser.User> userList = [];
   List<mUser.User> enterUserList = [];
+
+  int bentoUserLength = 0;
 
   String currentDate = DateTime.now().toString().split(" ").first;
   int totalTicket;
@@ -102,6 +110,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    // Fluttertoast.showToast(msg: "The browser is ${browser.browser}");
     print(">>> currentDate: $currentDate");
     checkExistRoom(currentDate).then((value) {
       setState(() {});
@@ -234,6 +243,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                       showDialog(
                                           context: _drawerKey.currentContext,
                                           builder: (context) => AlertDialog(
+                                                title: Text("식권 수정하기"),
                                                 content: TextField(
                                                   controller: tmp,
                                                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
@@ -247,7 +257,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     child: Text("추가하기"),
                                                   ),
                                                   ElevatedButton(
-                                                    onPressed: () {},
+                                                    onPressed: () {
+                                                      Navigator.of(context).pop();
+                                                    },
                                                     child: Text("확인"),
                                                   ),
                                                 ],
@@ -513,8 +525,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 child: Text("확인")),
                                           ],
                                         ));
-                              }
-                              else {
+                              } else {
                                 showDialog(
                                     context: _drawerKey.currentContext,
                                     builder: (context) => AlertDialog(
@@ -556,152 +567,260 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         color: Colors.black,
                         onPressed: existRoom
                             ? () {
-                          if(isClosed){
-                            showDialog(
-                                context: _drawerKey.currentContext,
-                                builder: (context) => AlertDialog(
-                                  title: Text("안내"),
-                                  content: Text(
-                                    "이미 종료된 방입니다.",
-                                  ),
-                                  actions: [
-                                    ElevatedButton(
-                                        onPressed: () {
-                                          Navigator.of(context).pop();
-                                        },
-                                        child: Text("확인")),
-                                  ],
-                                ));
-                          }else{
-                            if (userList.isNotEmpty) userList.clear();
-                            print(
-                                "FirebaseInstance.instance.allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
-
-                            userList.addAll(FirebaseInstance.instance.allUserList);
-                            print("userList size: ${userList.length}");
-                            if (userList.length > 0) {
-                              List<mUser.User> leftUserItems = userList;
-                              print("enterUserList size: ${enterUserList.length}");
-                              enterUserList.forEach((element) {
-                                leftUserItems.removeWhere((v) => v.name == element.name);
-                                // userList.where((v) => v.name != element.name).toList();
-                                // 중복된 값을 제거해야함. 이미 포함된 사용자를 제외하고 값을 얻고자함.
-                              });
-                              for (int i = 0; i < leftUserItems.length; i++) {
-                                leftUserItems[i].isCheck = false;
-                              }
-
-                              showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder: (context) {
-                                    return Container(
-                                      height: MediaQuery.of(context).size.height / 1.5,
-                                      child: StatefulBuilder(
-                                        builder: (BuildContext context, void Function(void Function()) setState) {
-                                          return Column(
-                                            children: [
-                                              SizedBox(
-                                                height: 16,
-                                              ),
-                                              Container(
-                                                height: 4,
-                                                width: 32,
-                                                color: Colors.grey,
-                                              ),
-                                              Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 16),
-                                                child: Text(
-                                                  "대기인원 목록",
-                                                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                                ),
-                                              ),
-                                              Container(
-                                                height: MediaQuery.of(context).size.height / 2.1,
-                                                child: ListView.separated(
-                                                  itemCount: leftUserItems.length,
-                                                  itemBuilder: (context, index) {
-                                                    return Tooltip(
-                                                      message: '${leftUserItems[index].name}',
-                                                      child: CheckboxListTile(
-                                                        title: Text(leftUserItems[index].name),
-                                                        subtitle: Text(leftUserItems[index].team),
-                                                        onChanged: (bool value) {
-                                                          print(value);
-                                                          setState(() {
-                                                            leftUserItems[index].isCheck = value;
-                                                          });
-                                                        },
-                                                        value: leftUserItems[index].isCheck,
-                                                      ),
-                                                    );
+                                if (isClosed) {
+                                  showDialog(
+                                      context: _drawerKey.currentContext,
+                                      builder: (context) => AlertDialog(
+                                            title: Text("안내"),
+                                            content: Text(
+                                              "이미 종료된 방입니다.",
+                                            ),
+                                            actions: [
+                                              ElevatedButton(
+                                                  onPressed: () {
+                                                    Navigator.of(context).pop();
                                                   },
-                                                  separatorBuilder: (BuildContext context, int index) {
-                                                    return Divider(
-                                                      height: 6,
-                                                    );
-                                                  },
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                height: 16,
-                                              ),
-                                              Tooltip(
-                                                message: '신청하기',
-                                                child: GestureDetector(
-                                                  onTap: () async {
-                                                    List<mUser.User> checkUserList = leftUserItems
-                                                        .where((element) => element.isCheck == true)
-                                                        .toList();
-                                                    if (checkUserList.length > 0) {
-                                                      checkUserList.addAll(enterUserList);
-                                                      List<String> nameList = [];
-                                                      checkUserList.forEach((u) {
-                                                        nameList.add(u.name);
-                                                      });
-                                                      print(checkUserList.length);
-                                                      await firestore
-                                                          .collection("lunch")
-                                                          .doc(currentDate)
-                                                          .update(data: {"users": nameList});
+                                                  child: Text("확인")),
+                                            ],
+                                          ));
+                                } else {
+                                  if (userList.isNotEmpty) userList.clear();
+                                  print(
+                                      "FirebaseInstance.instance.allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
 
-                                                      setState(() {
-                                                        enterUserList.clear();
-                                                      });
-                                                      await refreshEnterUserList();
-                                                      Navigator.of(context).pop();
-                                                      // await firestore.collection("lunch").doc(currentDate).set({"users": []});
-                                                    } else {
-                                                      Fluttertoast.showToast(
-                                                          msg: "1명 이상 선택해야 참가가 가능합니다.", webPosition: "center");
-                                                      Navigator.of(context).pop();
-                                                    }
-                                                  },
-                                                  child: Container(
-                                                    height: 72,
-                                                    decoration: BoxDecoration(color: Colors.black),
-                                                    child: Center(
+                                  userList.addAll(FirebaseInstance.instance.allUserList);
+                                  print("userList size: ${userList.length}");
+                                  if (userList.length > 0) {
+                                    List<mUser.User> leftUserItems = userList;
+                                    print("enterUserList size: ${enterUserList.length}");
+                                    enterUserList.forEach((element) {
+                                      leftUserItems.removeWhere((v) => v.name == element.name);
+                                      // userList.where((v) => v.name != element.name).toList();
+                                      // 중복된 값을 제거해야함. 이미 포함된 사용자를 제외하고 값을 얻고자함.
+                                    });
+                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                      leftUserItems[i].isCheck = false;
+                                    }
+
+                                    showModalBottomSheet(
+                                        context: context,
+                                        isScrollControlled: true,
+                                        builder: (context) {
+                                          return Container(
+                                            height: MediaQuery.of(context).size.height / 1.5,
+                                            child: StatefulBuilder(
+                                              builder: (BuildContext context, void Function(void Function()) setState) {
+                                                return Column(
+                                                  children: [
+                                                    SizedBox(
+                                                      height: 16,
+                                                    ),
+                                                    Container(
+                                                      height: 4,
+                                                      width: 32,
+                                                      color: Colors.grey,
+                                                    ),
+                                                    Padding(
+                                                      padding: const EdgeInsets.symmetric(vertical: 16),
                                                       child: Text(
-                                                        "신청하기",
-                                                        style: TextStyle(color: Colors.white, fontSize: 18),
+                                                        "대기인원 목록",
+                                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                                                       ),
                                                     ),
-                                                  ),
-                                                ),
-                                              )
-                                            ],
-                                          );
-                                        },
-                                      ),
-                                    );
-                                  });
-                            } else {
-                              Fluttertoast.showToast(
-                                msg: "정보를 가져오고 있습니다. 잠시만 기다려주세요",
-                              );
-                            }
-                          }
+                                                    Container(
+                                                      height: MediaQuery.of(context).size.height / 2.1,
+                                                      child: ListView.separated(
+                                                        itemCount: leftUserItems.length,
+                                                        itemBuilder: (context, index) {
+                                                          return Tooltip(
+                                                            message: '${leftUserItems[index].name}',
+                                                            child: CheckboxListTile(
+                                                              title: Text(leftUserItems[index].name),
+                                                              subtitle: Text(leftUserItems[index].team),
+                                                              onChanged: (bool value) {
+                                                                print(value);
+                                                                setState(() {
+                                                                  leftUserItems[index].isCheck = value;
+                                                                });
+                                                              },
+                                                              value: leftUserItems[index].isCheck,
+                                                            ),
+                                                          );
+                                                        },
+                                                        separatorBuilder: (BuildContext context, int index) {
+                                                          return Divider(
+                                                            height: 6,
+                                                          );
+                                                        },
+                                                      ),
+                                                    ),
+                                                    SizedBox(
+                                                      height: 16,
+                                                    ),
+                                                    Tooltip(
+                                                      message: '신청하기',
+                                                      child: GestureDetector(
+                                                        onTap: () async {
+                                                          bool isBento = false;
+                                                          List<mUser.User> checkUserList = leftUserItems
+                                                              .where((element) => element.isCheck == true)
+                                                              .toList();
 
+                                                          if (checkUserList.length > 0) {
+                                                            bentoUserLength = checkUserList.length;
+                                                            await showDialog(
+                                                                context: _drawerKey.currentContext,
+                                                                builder: (context) => WillPopScope(
+                                                                      onWillPop: () {},
+                                                                      child: AlertDialog(
+                                                                        title: Text("안내"),
+                                                                        content: Text("혹시 도시락 주문하세요?"),
+                                                                        actions: [
+                                                                          ButtonBar(
+                                                                            children: [
+                                                                              ElevatedButton(
+                                                                                  onPressed: () async {
+                                                                                    isBento = true;
+                                                                                    Navigator.of(context).pop();
+                                                                                  },
+                                                                                  child: Text("네")),
+                                                                              ElevatedButton(
+                                                                                onPressed: () async {
+                                                                                  isBento = false;
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("아니요"),
+                                                                              )
+                                                                            ],
+                                                                          ),
+                                                                        ],
+                                                                      ),
+                                                                    ));
+                                                            if (isBento) {
+                                                              await showDialog(
+                                                                  context: _drawerKey.currentContext,
+                                                                  builder: (context) => WillPopScope(
+                                                                        onWillPop: () {},
+                                                                        child: StatefulBuilder(
+                                                                          builder: (BuildContext context,
+                                                                              void Function(void Function()) setState) {
+                                                                            String bentoTime = "";
+                                                                            return AlertDialog(
+                                                                              title: Text("안내"),
+                                                                              content: Column(
+                                                                                mainAxisSize: MainAxisSize.min,
+                                                                                children: [
+                                                                                  Text("잠깐만요! 어떤 핸드폰 사용하세요?"
+                                                                                      "\n제가 문자로 바로 전달할 수 있도록 도와줄게요."),
+                                                                                  TimePickerSpinner(
+                                                                                    is24HourMode: true,
+                                                                                    onTimeChange: (time) {
+                                                                                      bentoTime = DateFormat("HH시mm분")
+                                                                                          .format(time);
+                                                                                    },
+                                                                                  )
+                                                                                ],
+                                                                              ),
+                                                                              actions: [
+                                                                                ElevatedButton(
+                                                                                    onPressed: () async {
+                                                                                      Navigator.of(context).pop();
+                                                                                    },
+                                                                                    child: Text("괜찮아")),
+                                                                                ElevatedButton(
+                                                                                    onPressed: () async {
+                                                                                      String url =
+                                                                                          'sms:010&body=안녕하세요 6층 엔젤로보틱스 ${bentoUserLength}명 ${bentoTime}에 도시락 받으러갈게요!';
+                                                                                      launch(url);
+                                                                                      Navigator.of(context).pop();
+                                                                                    },
+                                                                                    child: Text("아이폰")),
+                                                                                ElevatedButton(
+                                                                                  onPressed: () async {
+                                                                                    // Fluttertoast.showToast(
+                                                                                    //     msg: "웹이에요");
+                                                                                    String url =
+                                                                                        'sms:010?body=안녕하세요 6층 엔젤로보틱스 ${bentoUserLength}명 ${bentoTime}에 도시락 받으러갈게요!';
+                                                                                    launch(url);
+                                                                                    Navigator.of(context).pop();
+                                                                                  },
+                                                                                  child: Text("안드로이드"),
+                                                                                )
+                                                                              ],
+                                                                            );
+                                                                          },
+                                                                        ),
+                                                                      ));
+                                                              checkUserList.addAll(enterUserList);
+                                                              List<String> nameList = [];
+                                                              checkUserList.forEach((u) {
+                                                                nameList.add(u.name);
+                                                              });
+                                                              print(checkUserList.length);
+                                                              await firestore
+                                                                  .collection("lunch")
+                                                                  .doc(currentDate)
+                                                                  .update(data: {"users": nameList});
+
+                                                              setState(() {
+                                                                enterUserList.clear();
+                                                              });
+                                                              await refreshEnterUserList();
+                                                              Navigator.of(context).pop();
+                                                              Fluttertoast.showToast(
+                                                                  msg: "신청이 완료되었어요.", webPosition: "center");
+                                                            } else {
+                                                              checkUserList.addAll(enterUserList);
+                                                              List<String> nameList = [];
+                                                              checkUserList.forEach((u) {
+                                                                nameList.add(u.name);
+                                                              });
+                                                              print(checkUserList.length);
+                                                              await firestore
+                                                                  .collection("lunch")
+                                                                  .doc(currentDate)
+                                                                  .update(data: {"users": nameList});
+
+                                                              setState(() {
+                                                                enterUserList.clear();
+                                                              });
+                                                              await refreshEnterUserList();
+                                                              Navigator.of(context).pop();
+                                                              Fluttertoast.showToast(
+                                                                  msg: "신청이 완료되었어요.", webPosition: "center");
+                                                            }
+
+                                                            // await firestore.collection("lunch").doc(currentDate).set({"users": []});
+                                                          } else {
+                                                            Fluttertoast.showToast(
+                                                                msg: "1명 이상 선택해야 참가가 가능합니다.", webPosition: "center");
+                                                            Navigator.of(context).pop();
+                                                          }
+                                                        },
+                                                        child: Container(
+                                                          height: 72,
+                                                          decoration: BoxDecoration(color: Colors.black),
+                                                          child: Center(
+                                                            child: Text(
+                                                              "신청하기",
+                                                              style: TextStyle(color: Colors.white, fontSize: 18),
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    )
+                                                  ],
+                                                );
+                                              },
+                                            ),
+                                          );
+                                        });
+                                  } else {
+                                    Fluttertoast.showToast(
+                                      msg: "정보를 가져오고 있습니다. 잠시만 기다려주세요",
+                                    );
+                                  }
+                                }
                               }
                             : null,
                       ),
@@ -910,9 +1029,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             color: Colors.black,
           ),
           onTap: () {
-            showDialog(context: _drawerKey.currentContext, builder: (context)=> AlertDialog(
-              content: Image.asset("assets/img/food_table_01.png"),
-            ));
+            showDialog(
+                context: _drawerKey.currentContext,
+                builder: (context) => AlertDialog(
+                      content: Image.asset("assets/img/food_table_01.png"),
+                    ));
             // Navigator.of(context).pushNamed("/about");
           },
         ),
