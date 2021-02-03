@@ -1,18 +1,11 @@
 import 'dart:async';
 
-import 'package:firebase/firebase.dart';
 import 'package:firebase/firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_lunch_quest/src/model/record.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
+import 'package:flutter_lunch_quest/src/ui/wide_screen/export/web_record_print_page.dart';
 
-class Record {
-  final String date;
-  final int total;
-  final List<String> users;
-  final bool isClosed;
-
-  Record({this.date, this.total, this.users, this.isClosed});
-}
 
 class WideHomePage extends StatefulWidget {
   @override
@@ -49,15 +42,14 @@ class _WideHomePageState extends State<WideHomePage> {
                 date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']));
           }
 
-
           // print(records.indexWhere((element) => element.date == change.doc.id));
           // records[records.indexWhere((element) => element.date == change.doc.id)] = Record(
           //     date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']);
         }
-
-
       });
-      setState(() {});
+      setState(() {
+        // records = records.reversed.toList();
+      });
     });
   }
 
@@ -99,7 +91,16 @@ class _WideHomePageState extends State<WideHomePage> {
                     : "assets/img/logo_gray.png",
                 width: MediaQuery.of(context).size.width / 2.3,
               ),
-              Text("화면을 작게하면 모바일 처럼 사용이 가능합니다."),
+              Row(
+                children: [
+                  Text("화면을 작게하면 모바일 처럼 사용이 가능합니다."),
+                  ElevatedButton(onPressed: (){
+                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=>WebRecordPrintPagePage(recordItems:
+                    [...records],)));
+                  }, child: Text("프린트하기")),
+                ],
+              ),
+
               DataTable(
                 rows: records
                     .map((e) => DataRow(cells: [

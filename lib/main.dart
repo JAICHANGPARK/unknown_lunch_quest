@@ -3,7 +3,6 @@ import 'package:flutter_lunch_quest/src/ui/mobile/about_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/record/mobile_record_page.dart';
 import 'package:flutter_lunch_quest/src/ui/wide_screen/wide_home_page.dart';
 
-
 import 'package:responsive_builder/responsive_builder.dart';
 import 'src/remote/api.dart';
 import 'src/ui/mobile/black_market/bit_coin_page.dart';
@@ -18,7 +17,6 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-
   @override
   Widget build(BuildContext context) {
     print(">>> Called MyApp");
@@ -63,9 +61,9 @@ class MyApp extends StatelessWidget {
             ),
         "/about": (context) => AboutPage(),
         "/about/black_market": (context) => BitCoinPage(),
-        "/contact" : (context) => ContactPage(),
-        "/bulletin_board" : (context) => BulletinBoardPage(),
-        "/data/record" : (context) => MobileRecordPage(),
+        "/contact": (context) => ContactPage(),
+        "/bulletin_board": (context) => BulletinBoardPage(),
+        "/data/record": (context) => MobileRecordPage(),
       },
     );
     // MyHomePage(title: 'Lunch Quest'),

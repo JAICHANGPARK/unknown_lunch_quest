@@ -26,19 +26,11 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
   TextEditingController _contentTextEditingController = TextEditingController();
 
   List<Map<String, Map<String, String>>> comments = [];
+  BorderRadiusGeometry radius = BorderRadius.only(
+    topLeft: Radius.circular(24.0),
+    topRight: Radius.circular(24.0),
+  );
 
-  @override
-  void dispose() {
-    // TODO: implement dispose
-    if(_streamSubscription != null){
-      _streamSubscription?.cancel();
-    }
-
-    _titleTextEditingController?.dispose();
-    _contentTextEditingController?.dispose();
-    _pc.close();
-    super.dispose();
-  }
 
   @override
   void initState() {
@@ -46,7 +38,7 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
     super.initState();
 
     database = FirebaseInstance.instance.database;
-    _streamSubscription = database.ref("bulletin").limitToLast(20).onValue.listen((e) {
+    _streamSubscription = database.ref("bulletin").limitToLast(10).onValue.listen((e) {
       DataSnapshot datasnapshot = e.snapshot;
       if (items.isNotEmpty) items.clear();
       datasnapshot.forEach((value) {
@@ -81,16 +73,24 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
         // childCount = value.child(value.key).child("comments").numChildren();
         items.add(Bulletin(title: title, mainKey: k, content: content, datetime: dt, commentCount: childCount));
       });
+      items = items.reversed.toList();
       setState(() {
-        items = items.reversed.toList();
       });
     });
+
   }
 
-  BorderRadiusGeometry radius = BorderRadius.only(
-    topLeft: Radius.circular(24.0),
-    topRight: Radius.circular(24.0),
-  );
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    if(_streamSubscription != null){
+      _streamSubscription?.cancel();
+    }
+    _titleTextEditingController.dispose();
+    _contentTextEditingController.dispose();
+    _pc.close();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -124,10 +124,10 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
                           itemBuilder: (context, index) {
                             return ListTile(
                               onTap: () async {
-                                _streamSubscription.pause();
+                                // _streamSubscription.pause();
                                 await Navigator.of(context).push(MaterialPageRoute(
                                     builder: (context) => BulletinDetailPage(items[index], database)));
-                                _streamSubscription.resume();
+                                // _streamSubscription.resume();
                               },
                               leading: CircleAvatar(
                                 child: Text("익명"),
@@ -241,6 +241,10 @@ class _BulletinBoardPageState extends State<BulletinBoardPage> {
                                 "content": _contentTextEditingController.text,
                                 "datetime": dt
                               });
+                              _titleTextEditingController.clear();
+                              _contentTextEditingController.clear();
+                              _pc.close();
+                              Fluttertoast.showToast(msg: "등록완료", webPosition: "center");
                             } else {
                               Fluttertoast.showToast(msg: "제목과 내용을 모두 입력해주세요", webPosition: "center");
                             }

@@ -70,11 +70,6 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
     // TODO: implement initState
     super.initState();
     streamLunchList();
-    // fetchLunchList().then((value) {
-    //   setState(() {
-    //
-    //   });
-    // });
   }
 
   @override
