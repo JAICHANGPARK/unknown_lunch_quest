@@ -145,21 +145,30 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                             ExpansionTile(title: Text("1.0.0"),
                             expandedCrossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text("1. 파일럿 버전 런칭"),
-                              Text("2. 신청하기, 삭제하기, 화면 UI 구현"),
-                              Text("3. 게시판, 문의하기 추가"),
+                              Text("1. ✨ 파일럿 버전 런칭"),
+                              Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현"),
+                              Text("3. ✨ 게시판, 문의하기 추가"),
                             ],),
                             ExpansionTile(title: Text("1.0.1"),
                               expandedCrossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("1. 식권 변동 기능 추가"),
-                                Text("2. 식권장부 보기 추가"),
-                                Text("3. 메뉴 개선"),
+                                Text("1. ✨ 식권 변동 기능 추가"),
+                                Text("2. ✨ 식권장부 보기 추가"),
+                                Text("3. ✨ 메뉴 개선"),
                               ],),
                             ExpansionTile(title: Text("1.0.2"),
                               expandedCrossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text("1. 도시락 주문 기능 추가"),
+                                Text("1. ✨ 도시락 주문 기능 추가"),
+
+                              ],),
+                            ExpansionTile(title: Text("1.0.3"),
+                              expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text("1. ✨ 도시락, 일반 구분"),
+                                Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)"),
+                                Text("3. ✨ 데스크톱 프린트 기능 추가"),
+
 
                               ],)
                           ],
