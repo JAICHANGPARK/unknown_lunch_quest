@@ -44,7 +44,6 @@ class _WebRecordPrintPageState extends State<WebRecordPrintPagePage> {
   }
 
   pw.Widget _contentTable(pw.Context context, ByteData font) {
-
     final ttf = pw.Font.ttf(font);
     const tableHeaders = ['날짜', '인원수', '인원'];
 
@@ -66,7 +65,7 @@ class _WebRecordPrintPageState extends State<WebRecordPrintPagePage> {
         fontWeight: pw.FontWeight.bold,
         font: ttf,
       ),
-      cellStyle:  pw.TextStyle(
+      cellStyle: pw.TextStyle(
         font: ttf,
         fontSize: 10,
       ),
@@ -105,7 +104,7 @@ class _WebRecordPrintPageState extends State<WebRecordPrintPagePage> {
         pageFormat: format,
         orientation: pw.PageOrientation.landscape,
         build: (context) {
-          return  _contentTable(context, font);
+          return _contentTable(context, font);
           // return pw.Table(
           //   children: [
           //     pw.TableRow(children: [

@@ -9,6 +9,7 @@ import 'src/ui/mobile/black_market/bit_coin_page.dart';
 import 'src/ui/mobile/bulletin_board_page.dart';
 import 'src/ui/mobile/contact_page.dart';
 import 'src/ui/mobile/home_page.dart';
+import 'src/ui/mobile/record/mobile_record_print_page.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();

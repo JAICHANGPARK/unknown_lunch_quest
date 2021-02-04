@@ -20,7 +20,9 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
     _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
     _animation = Tween(begin: 1.0, end: 1.3).animate(_animationController);
   }
+
   TextEditingController textEditingController = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -90,21 +92,23 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                               },
                               context: context);
 
-
-                          if(counter == 0){
+                          if (counter == 0) {
                             _animationController.forward();
                             await Future.delayed(Duration(milliseconds: 500));
-                            Fluttertoast.showToast(msg: "Welcome Black Market", webPosition: "center",
+                            Fluttertoast.showToast(
+                                msg: "Welcome Black Market",
+                                webPosition: "center",
                                 toastLength: Toast.LENGTH_LONG,
                                 timeInSecForIosWeb: 3);
-                            Fluttertoast.showToast(msg: "${textEditingController.text}, I waited for you to come here.", webPosition: "center",
+                            Fluttertoast.showToast(
+                                msg: "${textEditingController.text}, I waited for you to come here.",
+                                webPosition: "center",
                                 toastLength: Toast.LENGTH_LONG,
                                 timeInSecForIosWeb: 3);
                             textEditingController.clear();
                             await Navigator.of(context).pushNamed("/about/black_market");
                             _animationController.reverse();
                           }
-
                         }
                       },
                       child: ScaleTransition(scale: _animation, child: Image.asset("assets/img/the_last_supper.jpg"))),
@@ -136,44 +140,62 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                     title: Text("Changelog"),
                     subtitle: Text("버전기록"),
                     onTap: () {
-                      showDialog(context: context, builder: (context)=>AlertDialog(
-                        title: Text("CHANGELOG"),
-                        content: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            ExpansionTile(title: Text("1.0.0"),
-                            expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text("1. ✨ 파일럿 버전 런칭"),
-                              Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현"),
-                              Text("3. ✨ 게시판, 문의하기 추가"),
-                            ],),
-                            ExpansionTile(title: Text("1.0.1"),
-                              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("1. ✨ 식권 변동 기능 추가"),
-                                Text("2. ✨ 식권장부 보기 추가"),
-                                Text("3. ✨ 메뉴 개선"),
-                              ],),
-                            ExpansionTile(title: Text("1.0.2"),
-                              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("1. ✨ 도시락 주문 기능 추가"),
-
-                              ],),
-                            ExpansionTile(title: Text("1.0.3"),
-                              expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text("1. ✨ 도시락, 일반 구분"),
-                                Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)"),
-                                Text("3. ✨ 데스크톱 프린트 기능 추가"),
-
-
-                              ],)
-                          ],
-                        ),
-                      ));
+                      showDialog(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                                title: Text("CHANGELOG"),
+                                content: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    ExpansionTile(
+                                      title: Text("1.0.0"),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("1. ✨ 파일럿 버전 런칭"),
+                                        Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현"),
+                                        Text("3. ✨ 게시판, 문의하기 추가"),
+                                      ],
+                                    ),
+                                    ExpansionTile(
+                                      title: Text("1.0.1"),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("1. ✨ 식권 변동 기능 추가"),
+                                        Text("2. ✨ 식권장부 보기 추가"),
+                                        Text("3. ✨ 메뉴 개선"),
+                                      ],
+                                    ),
+                                    ExpansionTile(
+                                      title: Text("1.0.2"),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("1. ✨ 도시락 주문 기능 추가"),
+                                      ],
+                                    ),
+                                    ExpansionTile(
+                                      title: Text("1.0.3"),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("1. ✨ 도시락, 일반 구분"),
+                                        Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)"),
+                                        Text("3. ✨ 데스크톱 프린트 기능 추가"),
+                                      ],
+                                    ),
+                                    ExpansionTile(
+                                      title: Text("1.0.4"),
+                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text("1. ✨ 장부에 일반과 도시락이 표기되는 문제를 수정했어요"),
+                                        Text("2. ✨ 방만들기 후 새로고침이 안되던 문제를 수정했어요"),
+                                        Text("3. ✨ 신청하기에 인원수 표기 추가"),
+                                        Text("4. ✨ 팀별 참여신청 구분 기능 추가"),
+                                        Text("5. ✨ 생성되지 않은 방임에도 종료문구 수정"),
+                                      ],
+                                    )
+                                  ],
+                                ),
+                              ));
                     },
                   )
                 ],

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lunch_quest/src/model/record.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 
-
+import 'mobile_record_print_page.dart';
 
 class MobileRecordPage extends StatefulWidget {
   @override
@@ -29,26 +29,31 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
         if (['added'].contains(change.type)) {
           print("added");
           records.add(Record(
-              date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']));
+              date: change.doc.id,
+              users: userList.map((e) => e.split(",").first).toList(),
+              total: userList.length,
+              isClosed: change.doc.data()['isClosed']));
         } else if (['modified'].contains(change.type)) {
           print("modified");
           print(change.doc.id);
 
-          int idx= records.indexWhere((element) => element.date == change.doc.id);
+          int idx = records.indexWhere((element) => element.date == change.doc.id);
           print(idx);
-          if(idx != -1){
+          if (idx != -1) {
             records.removeAt(idx);
-            records.insert(idx, Record(
-                date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']));
+            records.insert(
+                idx,
+                Record(
+                    date: change.doc.id,
+                    users: userList.map((e) => e.split(",").first).toList(),
+                    total: userList.length,
+                    isClosed: change.doc.data()['isClosed']));
           }
-
 
           // print(records.indexWhere((element) => element.date == change.doc.id));
           // records[records.indexWhere((element) => element.date == change.doc.id)] = Record(
           //     date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']);
         }
-
-
       });
       setState(() {});
     });
@@ -60,8 +65,11 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
     querySnapshot.forEach((element) {
       print("${element.id}:${element.data()}");
       List<String> userList = List<String>.from(element.data()['users']);
-      records
-          .add(Record(date: element.id, users: userList, total: userList.length, isClosed: element.data()['isClosed']));
+      records.add(Record(
+          date: element.id,
+          users: userList.map((e) => e.split(",").first).toList(),
+          total: userList.length,
+          isClosed: element.data()['isClosed']));
     });
   }
 
@@ -77,6 +85,16 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
     return Scaffold(
       appBar: AppBar(
         title: Text("식권장부"),
+        actions: [
+          IconButton(
+              icon: Icon(Icons.print),
+              onPressed: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                    builder: (context) => MobileRecordPrintPagePage(
+                          recordItems: [...records],
+                        )));
+              })
+        ],
       ),
       body: SingleChildScrollView(
         scrollDirection: Axis.vertical,
@@ -85,11 +103,11 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
           child: DataTable(
             rows: records
                 .map((e) => DataRow(cells: [
-              DataCell(Text(e.date)),
-              DataCell(Text(e.total.toString())),
-              DataCell(Text("${e.users.toString()}")),
-              DataCell(e.isClosed ? Text("마감완료") : Text("미완료")),
-            ]))
+                      DataCell(Text(e.date)),
+                      DataCell(Text(e.total.toString())),
+                      DataCell(Text("${e.users.toString()}")),
+                      DataCell(e.isClosed ? Text("마감완료") : Text("미완료")),
+                    ]))
                 .toList(),
             columns: [
               DataColumn(

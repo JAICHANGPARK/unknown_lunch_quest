@@ -6,7 +6,6 @@ import 'package:flutter_lunch_quest/src/model/record.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_lunch_quest/src/ui/wide_screen/export/web_record_print_page.dart';
 
-
 class WideHomePage extends StatefulWidget {
   @override
   _WideHomePageState createState() => _WideHomePageState();
@@ -29,17 +28,25 @@ class _WideHomePageState extends State<WideHomePage> {
         if (['added'].contains(change.type)) {
           print("added");
           records.add(Record(
-              date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']));
+              date: change.doc.id,
+              users: userList.map((e) => e.split(",").first).toList(),
+              total: userList.length,
+              isClosed: change.doc.data()['isClosed']));
         } else if (['modified'].contains(change.type)) {
           print("modified");
           print(change.doc.id);
 
-          int idx= records.indexWhere((element) => element.date == change.doc.id);
+          int idx = records.indexWhere((element) => element.date == change.doc.id);
           print(idx);
-          if(idx != -1){
+          if (idx != -1) {
             records.removeAt(idx);
-            records.insert(idx, Record(
-                date: change.doc.id, users: userList, total: userList.length, isClosed: change.doc.data()['isClosed']));
+            records.insert(
+                idx,
+                Record(
+                    date: change.doc.id,
+                    users: userList.map((e) => e.split(",").first).toList(),
+                    total: userList.length,
+                    isClosed: change.doc.data()['isClosed']));
           }
 
           // print(records.indexWhere((element) => element.date == change.doc.id));
@@ -59,8 +66,11 @@ class _WideHomePageState extends State<WideHomePage> {
     querySnapshot.forEach((element) {
       print("${element.id}:${element.data()}");
       List<String> userList = List<String>.from(element.data()['users']);
-      records
-          .add(Record(date: element.id, users: userList, total: userList.length, isClosed: element.data()['isClosed']));
+      records.add(Record(
+          date: element.id,
+          users: userList.map((e) => e.split(",").first).toList(),
+          total: userList.length,
+          isClosed: element.data()['isClosed']));
     });
   }
 
@@ -94,13 +104,16 @@ class _WideHomePageState extends State<WideHomePage> {
               Row(
                 children: [
                   Text("화면을 작게하면 모바일 처럼 사용이 가능합니다."),
-                  ElevatedButton(onPressed: (){
-                    Navigator.of(context).push(MaterialPageRoute(builder: (context)=>WebRecordPrintPagePage(recordItems:
-                    [...records],)));
-                  }, child: Text("프린트하기")),
+                  ElevatedButton(
+                      onPressed: () {
+                        Navigator.of(context).push(MaterialPageRoute(
+                            builder: (context) => WebRecordPrintPagePage(
+                                  recordItems: [...records],
+                                )));
+                      },
+                      child: Text("프린트하기")),
                 ],
               ),
-
               DataTable(
                 rows: records
                     .map((e) => DataRow(cells: [
