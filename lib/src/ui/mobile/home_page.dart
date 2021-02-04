@@ -373,7 +373,23 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                       child: ListTile(
                                                         leading: Text(index.toString()),
                                                         title: Text(enterUserList[index].name),
-                                                        trailing: Text(enterUserList[index].part),
+                                                        trailing:
+                                                        RichText(
+                                                          text: TextSpan(
+                                                            children: <TextSpan>[
+                                                              TextSpan(
+                                                                text: enterUserList[index].part == "도시락" ? "🍱도시락" : "일반",  // non-emoji characters
+                                                              ),
+                                                              // TextSpan(
+                                                              //   text: '🧭 🏳️\u200d🌈', // emoji characters
+                                                              //   style: TextStyle(
+                                                              //     fontFamily: 'EmojiOne',
+                                                              //   ),
+                                                              // ),
+                                                            ],
+                                                          ),
+                                                        )
+                                                        // Text(),
                                                         // subtitle: Text(userList[index].team),
                                                       ),
                                                     ),
@@ -676,7 +692,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                       .set({"users": [], "isClosed": false});
                                   Navigator.of(context).pop();
                                   Fluttertoast.showToast(msg: "방만들기 성공", webPosition: "center");
-                                  setState(() {});
+                                  setState(() {
+                                    isOpen = true;
+                                  });
                                 },
                                 child: Text("방만들기"))
                           ],
