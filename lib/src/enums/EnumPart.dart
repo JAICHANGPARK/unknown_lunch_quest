@@ -1,0 +1,4 @@
+enum EnumPart{
+  normal,
+  bento,
+}

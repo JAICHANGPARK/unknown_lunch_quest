@@ -6,12 +6,14 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_date_picker_timeline/flutter_date_picker_timeline.dart';
+import 'package:flutter_lunch_quest/src/enums/EnumPart.dart';
 import 'package:flutter_lunch_quest/src/model/user.dart' as mUser;
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:slide_digital_clock/slide_digital_clock.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:web_browser_detect/web_browser_detect.dart';
@@ -28,7 +30,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final browser = Browser();
   GlobalKey<ScaffoldState> _drawerKey = GlobalKey();
 
-  StreamSubscription<QuerySnapshot> _streamSubscription;
+  StreamSubscription<DocumentSnapshot> _streamSubscription;
   Firestore firestore = FirebaseInstance.instance.store;
   FancyDrawerController _controller;
   ConfettiController _controllerCenter;
@@ -40,10 +42,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   bool isPlaying = false;
   bool isClosed = false;
 
-  List<mUser.User> userList = [];
-  List<mUser.User> enterUserList = [];
+  List<mUser.User> userList = []; // 전체 사용자 리스트를 담는 변수
+  List<mUser.User> enterUserList = []; // 참가한 사용자 리스트를 담는 변수
 
-  int bentoUserLength = 0;
+  int bentoUserLength = 0; //도시락 주문 인원을 받는 변수
 
   String currentDate = DateTime.now().toString().split(" ").first;
   int totalTicket;
@@ -91,16 +93,34 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       isClosed = querySnapshot.data()["isClosed"];
       print(isClosed);
       // print("querySnapshot.data() : ${querySnapshot.data()}");
-      querySnapshot.data()["users"].forEach((element) {
-        String part = "";
-        if (element.toString().split(",").length == 1) {
-          part = "일반";
-        } else {
-          part = element.toString().split(",").last;
-        }
-        String name = element.toString().split(",").first;
-        enterUserList.add(mUser.User(name: name, team: "", part: part));
+      _streamSubscription = firestore.collection("lunch").doc(date).onSnapshot.listen((documentSnapshot) {
+        if (enterUserList.length > 0) enterUserList.clear();
+        // print(">>> documentSnapshot: ${documentSnapshot.get("users")}");
+        // print(">>>> documentSnapshot data: ${documentSnapshot.data()}");
+        documentSnapshot.get("users").forEach((element) {
+          String part = "";
+          if (element.toString().split(",").length == 1) {
+            part = "일반";
+          } else {
+            part = element.toString().split(",").last;
+          }
+          String name = element.toString().split(",").first;
+          enterUserList.add(mUser.User(name: name, team: "", part: part));
+        });
+        // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
+        setState(() {});
       });
+
+      // querySnapshot.data()["users"].forEach((element) {
+      //   String part = "";
+      //   if (element.toString().split(",").length == 1) {
+      //     part = "일반";
+      //   } else {
+      //     part = element.toString().split(",").last;
+      //   }
+      //   String name = element.toString().split(",").first;
+      //   enterUserList.add(mUser.User(name: name, team: "", part: part));
+      // });
     }
   }
 
@@ -167,7 +187,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void dispose() {
     // TODO: implement dispose
-    _streamSubscription?.cancel();
+    if (_streamSubscription != null) _streamSubscription.cancel();
     _controller.dispose(); // Dispose c
     _controllerCenter.dispose();
     super.dispose();
@@ -353,7 +373,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
                   //TODO: 참가인원 뷰
                   SizedBox(
-                    height: MediaQuery.of(context).size.height / 1.6,
+                    height: MediaQuery.of(context).size.height / 1.3,
                     width: MediaQuery.of(context).size.width,
                     child: existRoom
                         ? isClosed
@@ -364,6 +384,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Expanded(
+                                            flex: 2,
                                             child: Padding(
                                               padding: const EdgeInsets.all(8.0),
                                               child: Row(
@@ -385,6 +406,140 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             height: 6,
                                           ),
                                           Expanded(
+                                            flex: 2,
+                                            child: Padding(
+                                              padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                                              child: Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                crossAxisAlignment: CrossAxisAlignment.center,
+                                                children: [
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Expanded(
+                                                            child: Padding(
+                                                          padding: const EdgeInsets.only(left: 8),
+                                                          child: Text("도시락 파티"),
+                                                        )),
+                                                        Expanded(
+                                                          child: Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: LinearPercentIndicator(
+                                                                  lineHeight: 6.0,
+                                                                  percent: (enterUserList
+                                                                          .where((element) => element.part == "도시락")
+                                                                          .toList()
+                                                                          .length /
+                                                                      enterUserList.length),
+                                                                  progressColor: Theme.of(context).accentColor,
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                "${enterUserList.where((element) => element.part == "도시락").toList().length}/${enterUserList.length}명",
+                                                                style: TextStyle(fontSize: 12),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 24,
+                                                  ),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Expanded(child: Text("일반 파티")),
+                                                        Expanded(
+                                                          child: Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: LinearPercentIndicator(
+                                                                  lineHeight: 6.0,
+                                                                  percent: (enterUserList
+                                                                          .where((element) => element.part == "일반")
+                                                                          .toList()
+                                                                          .length /
+                                                                      enterUserList.length),
+                                                                  progressColor: Colors.red,
+                                                                ),
+                                                              ),
+                                                              Text(
+                                                                "${enterUserList.where((element) => element.part == "일반").toList().length}/${enterUserList.length}명",
+                                                                style: TextStyle(fontSize: 12),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  SizedBox(
+                                                    width: 24,
+                                                  ),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Expanded(child: Text("미참가")),
+                                                        Expanded(
+                                                          child: Row(
+                                                            children: [
+                                                              Expanded(
+                                                                child: FirebaseInstance.instance.allUserList.length > 0
+                                                                    ? LinearPercentIndicator(
+                                                                        lineHeight: 6.0,
+                                                                        percent: (FirebaseInstance
+                                                                                    .instance.allUserList.length -
+                                                                                enterUserList.length) /
+                                                                            FirebaseInstance
+                                                                                .instance.allUserList.length,
+                                                                        progressColor: Colors.blueGrey,
+                                                                      )
+                                                                    : LinearPercentIndicator(
+                                                                        lineHeight: 6.0,
+                                                                        percent: 0.0,
+                                                                        progressColor: Colors.blueGrey,
+                                                                      ),
+                                                              ),
+                                                              Text(
+                                                                FirebaseInstance.instance.allUserList.length > 0
+                                                                    ? "${FirebaseInstance.instance.allUserList.length - enterUserList.length}/${FirebaseInstance.instance.allUserList.length}명"
+                                                                    : "?/?명",
+                                                                style: TextStyle(fontSize: 12),
+                                                              ),
+                                                            ],
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
+                                            child: Padding(
+                                                padding: const EdgeInsets.all(8.0),
+                                                child: MaterialButton(
+                                                  minWidth: double.infinity,
+                                                  color: Colors.black,
+                                                  onPressed: () {
+                                                    Navigator.of(context).pushNamed("/quest/battle/monster");
+                                                  },
+                                                  child: Text(
+                                                    "퀘스트참가",
+                                                    style: TextStyle(color: Colors.white),
+                                                  ),
+                                                )),
+                                          ),
+                                          Expanded(
+                                            flex: 2,
                                             child: Padding(
                                               padding: const EdgeInsets.all(8.0),
                                               child: Row(
@@ -408,7 +563,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             ),
                                           ),
                                           Expanded(
-                                            flex: 10,
+                                            flex: 15,
                                             child: ListView.separated(
                                                 separatorBuilder: (context, index) {
                                                   return Divider(
@@ -429,9 +584,161 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     ),
                                                     secondaryActions: <Widget>[
                                                       Tooltip(
+                                                        message: '수정하기',
+                                                        child: IconSlideAction(
+                                                            caption: '수정',
+                                                            color: Colors.blue,
+                                                            icon: Icons.edit_outlined,
+                                                            onTap: () async {
+                                                              EnumPart p = enterUserList[index].part == "일반"
+                                                                  ? EnumPart.normal
+                                                                  : EnumPart.bento;
+                                                              showDialog(
+                                                                  context: context,
+                                                                  builder: (context) {
+                                                                    return AlertDialog(
+                                                                      content: StatefulBuilder(
+                                                                        builder: (BuildContext context,
+                                                                            void Function(void Function()) setState) {
+                                                                          return Column(
+                                                                            mainAxisSize: MainAxisSize.min,
+                                                                            children: [
+                                                                              RadioListTile(
+                                                                                  title: Text("일반"),
+                                                                                  value: EnumPart.normal,
+                                                                                  groupValue: p,
+                                                                                  onChanged: (v) {
+                                                                                    setState(() {
+                                                                                      p = v;
+                                                                                    });
+                                                                                  }),
+                                                                              RadioListTile(
+                                                                                  title: Text("도시락"),
+                                                                                  value: EnumPart.bento,
+                                                                                  groupValue: p,
+                                                                                  onChanged: (v) {
+                                                                                    setState(() {
+                                                                                      p = v;
+                                                                                    });
+                                                                                  })
+                                                                            ],
+                                                                          );
+                                                                        },
+                                                                      ),
+                                                                      title: Text("수정"),
+                                                                      actions: [
+                                                                        ElevatedButton(
+                                                                            onPressed: () {
+                                                                              Navigator.of(context).pop();
+                                                                            },
+                                                                            child: Text("취소")),
+                                                                        ElevatedButton(
+                                                                            onPressed: () async {
+                                                                              List<mUser.User> copyList = enterUserList;
+                                                                              if (p == EnumPart.normal) {
+                                                                                copyList
+                                                                                    .singleWhere((element) =>
+                                                                                        element.name ==
+                                                                                        enterUserList[index].name)
+                                                                                    .part = "일반";
+                                                                              } else {
+                                                                                copyList
+                                                                                    .singleWhere((element) =>
+                                                                                        element.name ==
+                                                                                        enterUserList[index].name)
+                                                                                    .part = "도시락";
+                                                                              }
+
+                                                                              await firestore
+                                                                                  .collection("lunch")
+                                                                                  .doc(currentDate)
+                                                                                  .update(data: {
+                                                                                "users": copyList
+                                                                                    .map((e) => "${e.name},${e.part}")
+                                                                                    .toList()
+                                                                              });
+
+                                                                              // setState(() {
+                                                                              //   enterUserList.clear();
+                                                                              // });
+                                                                              // await refreshEnterUserList();
+                                                                              Navigator.of(context).pop();
+                                                                            },
+                                                                            child: Text("네")),
+                                                                      ],
+                                                                    );
+                                                                    return StatefulBuilder(
+                                                                      builder: (BuildContext context,
+                                                                          void Function(void Function()) setState) {
+                                                                        EnumPart p = enterUserList[index].part == "일반"
+                                                                            ? EnumPart.normal
+                                                                            : EnumPart.bento;
+                                                                        return AlertDialog(
+                                                                          title: Text("수정"),
+                                                                          content: Column(
+                                                                            children: [
+                                                                              RadioListTile(
+                                                                                  title: Text("일반"),
+                                                                                  value: EnumPart.normal,
+                                                                                  groupValue: p,
+                                                                                  onChanged: (v) {
+                                                                                    setState(() {
+                                                                                      p = v;
+                                                                                    });
+                                                                                  }),
+                                                                              RadioListTile(
+                                                                                  title: Text("도시락"),
+                                                                                  value: EnumPart.bento,
+                                                                                  groupValue: p,
+                                                                                  onChanged: (v) {
+                                                                                    setState(() {
+                                                                                      p = v;
+                                                                                    });
+                                                                                  })
+                                                                            ],
+                                                                          ),
+                                                                          actions: [
+                                                                            ElevatedButton(
+                                                                                onPressed: () {
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("취소")),
+                                                                            ElevatedButton(
+                                                                                onPressed: () async {
+                                                                                  List<mUser.User> copyList =
+                                                                                      enterUserList;
+                                                                                  copyList.removeWhere((element) =>
+                                                                                      element.name ==
+                                                                                      enterUserList[index].name);
+
+                                                                                  await firestore
+                                                                                      .collection("lunch")
+                                                                                      .doc(currentDate)
+                                                                                      .update(data: {
+                                                                                    "users": copyList
+                                                                                        .map((e) =>
+                                                                                            "${e.name},${e.part}")
+                                                                                        .toList()
+                                                                                  });
+
+                                                                                  setState(() {
+                                                                                    enterUserList.clear();
+                                                                                  });
+                                                                                  await refreshEnterUserList();
+                                                                                  Navigator.of(context).pop();
+                                                                                },
+                                                                                child: Text("네")),
+                                                                          ],
+                                                                        );
+                                                                      },
+                                                                    );
+                                                                  });
+                                                            }),
+                                                      ),
+                                                      Tooltip(
                                                         message: '삭제하기',
                                                         child: IconSlideAction(
-                                                            caption: 'Delete',
+                                                            caption: '삭제',
                                                             color: Colors.red,
                                                             icon: Icons.delete,
                                                             onTap: () async {
@@ -485,9 +792,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                     : buildLoadingWidget("참가 대기중"))
                         : buildEmptyRoomWidget(),
                   ),
-                  SizedBox(
-                    height: 24,
-                  ),
+                  SizedBox(height: 24),
                 ],
               ),
             ),
@@ -496,7 +801,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             shape: CircularNotchedRectangle(),
             notchMargin: 12.0,
             child: Container(
-              height: 84,
+              height: 72,
               child: Row(
                 children: [
                   Expanded(
@@ -625,9 +930,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                       height: 4,
                                                       width: 32,
                                                       decoration: BoxDecoration(
-                                                          color: Colors.grey,
-                                                        borderRadius: BorderRadius.circular(8)
-                                                      ),
+                                                          color: Colors.grey, borderRadius: BorderRadius.circular(8)),
                                                     ),
                                                     Padding(
                                                       padding: const EdgeInsets.symmetric(vertical: 16),
@@ -708,13 +1011,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         '${leftUserItems.where((element) => element.team == "c_level").toList()[index].name}',
                                                                     child: CheckboxListTile(
                                                                       title: Text(leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "c_level")
+                                                                          .where((element) => element.team == "c_level")
                                                                           .toList()[index]
                                                                           .name),
                                                                       subtitle: Text(leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "c_level")
+                                                                          .where((element) => element.team == "c_level")
                                                                           .toList()[index]
                                                                           .team),
                                                                       onChanged: (bool value) {
@@ -728,8 +1029,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         });
                                                                       },
                                                                       value: leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "c_level")
+                                                                          .where((element) => element.team == "c_level")
                                                                           .toList()[index]
                                                                           .isCheck,
                                                                     ),
@@ -830,8 +1130,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "기타")
+                                                                              .where((element) => element.team == "기타")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
@@ -911,8 +1210,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "대외협력팀")
+                                                                              .where(
+                                                                                  (element) => element.team == "대외협력팀")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
@@ -981,13 +1280,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         '${leftUserItems.where((element) => element.team == "로봇연구개발팀").toList()[index].name}',
                                                                     child: CheckboxListTile(
                                                                       title: Text(leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "로봇연구개발팀")
+                                                                          .where((element) => element.team == "로봇연구개발팀")
                                                                           .toList()[index]
                                                                           .name),
                                                                       subtitle: Text(leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "로봇연구개발팀")
+                                                                          .where((element) => element.team == "로봇연구개발팀")
                                                                           .toList()[index]
                                                                           .team),
                                                                       onChanged: (bool value) {
@@ -1001,8 +1298,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         });
                                                                       },
                                                                       value: leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "로봇연구개발팀")
+                                                                          .where((element) => element.team == "로봇연구개발팀")
                                                                           .toList()[index]
                                                                           .isCheck,
                                                                     ),
@@ -1065,13 +1361,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         '${leftUserItems.where((element) => element.team == "로봇재활지원팀").toList()[index].name}',
                                                                     child: CheckboxListTile(
                                                                       title: Text(leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "로봇재활지원팀")
+                                                                          .where((element) => element.team == "로봇재활지원팀")
                                                                           .toList()[index]
                                                                           .name),
                                                                       subtitle: Text(leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "로봇재활지원팀")
+                                                                          .where((element) => element.team == "로봇재활지원팀")
                                                                           .toList()[index]
                                                                           .team),
                                                                       onChanged: (bool value) {
@@ -1085,8 +1379,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         });
                                                                       },
                                                                       value: leftUserItems
-                                                                          .where(
-                                                                              (element) => element.team == "로봇재활지원팀")
+                                                                          .where((element) => element.team == "로봇재활지원팀")
                                                                           .toList()[index]
                                                                           .isCheck,
                                                                     ),
@@ -1160,8 +1453,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "생산총괄팀")
+                                                                              .where(
+                                                                                  (element) => element.team == "생산총괄팀")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
@@ -1241,8 +1534,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "영업팀")
+                                                                              .where((element) => element.team == "영업팀")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
@@ -1268,7 +1560,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                           crossAxisAlignment: CrossAxisAlignment.start,
                                                           children: [
                                                             Expanded(
-                                                            flex: 2,
+                                                              flex: 2,
                                                               child: ButtonBar(
                                                                 children: [
                                                                   ElevatedButton(
@@ -1322,8 +1614,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "인사총무팀")
+                                                                              .where(
+                                                                                  (element) => element.team == "인사총무팀")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
@@ -1403,8 +1695,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "재무회계팀")
+                                                                              .where(
+                                                                                  (element) => element.team == "재무회계팀")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
@@ -1484,8 +1776,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         print(value);
                                                                         setState(() {
                                                                           leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "홍보마케팅")
+                                                                              .where(
+                                                                                  (element) => element.team == "홍보마케팅")
                                                                               .toList()[index]
                                                                               .isCheck = value;
                                                                         });
