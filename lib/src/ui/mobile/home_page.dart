@@ -1885,7 +1885,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                   await firestore
                                       .collection("lunch")
                                       .doc(currentDate)
-                                      .set({"users": [], "isClosed": false});
+                                      .set({"users": [], "isClosed": false, "damage": 0});
 
                                   Fluttertoast.showToast(msg: "방만들기 성공", webPosition: "center");
                                   setState(() {
