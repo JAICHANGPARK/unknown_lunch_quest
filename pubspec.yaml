@@ -39,6 +39,7 @@ dependencies:
   printing: any
   pdf: any
   confetti: 0.5.4+1
+  percent_indicator: ^2.1.9+1
 
 dev_dependencies:
   flutter_test:
