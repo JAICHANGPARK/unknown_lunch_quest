@@ -31,6 +31,12 @@ class _BattlePageState extends State<BattlePage> {
 
   List<DateTime> questEnteredUsers = [];
   int _tabCounter = 0;
+  int _pizzaCount = 0;
+  int _hamburgerCount = 0;
+  int _tacoCount = 0;
+  int _sushiCount = 0;
+  int _broccoliCount = 0;
+
   bool isQuestClear = false;
 
   ConfettiController _controllerCenter;
@@ -145,6 +151,11 @@ class _BattlePageState extends State<BattlePage> {
         if (questEnteredUsers.length > 0) questEnteredUsers.clear();
         questEnteredUsers = List.from(documentReference.get("quest_entered"));
         damage = documentReference.get("damage");
+        _pizzaCount = documentReference.get("pizza");
+        _hamburgerCount = documentReference.get("hamburger");
+        _tacoCount = documentReference.get("taco");
+        _sushiCount = documentReference.get("sushi");
+        _broccoliCount = documentReference.get("broccoli");
         // print(damage);
         if (damage >= totalHP) {
           isQuestClear = true;
@@ -170,6 +181,39 @@ class _BattlePageState extends State<BattlePage> {
         // final data = snapshot.data();
         // final count = data['damage'] as num;
         ref.update(data: {'damage': damage + hit});
+
+      } else {
+        print('damage doesnt exist');
+      }
+    });
+  }
+  void castVoteV2(String weapon, int hit) {
+    _tabCounter++;
+    final ref = FirebaseInstance.instance.fireStore.doc('lunch/${inputDate}');
+    // print(ref.id);
+    ref.get().then((snapshot) {
+      if (snapshot.exists) {
+        // final data = snapshot.data();
+        // final count = data['weapon'] as num;
+        int oldWeapon = 0;
+        switch(weapon){
+          case "pizza":
+            oldWeapon = _pizzaCount;
+            break;
+          case "hamburger":
+            oldWeapon = _hamburgerCount;
+            break;
+          case "taco":
+            oldWeapon = _tacoCount;
+            break;
+          case "sushi":
+            oldWeapon = _sushiCount;
+            break;
+          case "broccoli":
+            oldWeapon = _broccoliCount;
+            break;
+        }
+        ref.update(data: {'damage': damage + hit , weapon: oldWeapon + 1});
       } else {
         print('damage doesnt exist');
       }
@@ -238,7 +282,10 @@ class _BattlePageState extends State<BattlePage> {
                   //     child: LinearProgressIndicator(
                   //       minHeight: 16,
                   //     )),
-                  Text("몬스터에게 음식을 먹이세요"),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    child: Text("몬스터에게 음식을 먹이세요"),
+                  ),
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     child: LinearPercentIndicator(
@@ -319,7 +366,8 @@ class _BattlePageState extends State<BattlePage> {
                           pimpedWidgetBuilder: (context, controller) {
                             return InkWell(
                               onTap: () {
-                                castVote(2);
+                                // castVote(2);
+                                castVoteV2("pizza", 2);
                                 controller.forward(from: 0.0);
                               },
                               child: CircleAvatar(
@@ -338,7 +386,8 @@ class _BattlePageState extends State<BattlePage> {
                           pimpedWidgetBuilder: (context, controller) {
                             return InkWell(
                               onTap: () {
-                                castVote(3);
+                                // castVote(3);
+                                castVoteV2("hamburger", 3);
                                 controller.forward(from: 0.0);
                               },
                               child: CircleAvatar(
@@ -357,7 +406,8 @@ class _BattlePageState extends State<BattlePage> {
                           pimpedWidgetBuilder: (context, controller) {
                             return InkWell(
                               onTap: () {
-                                castVote(2);
+                                // castVote(2);
+                                castVoteV2("taco", 3);
                                 controller.forward(from: 0.0);
                               },
                               child: CircleAvatar(
@@ -376,7 +426,8 @@ class _BattlePageState extends State<BattlePage> {
                           pimpedWidgetBuilder: (context, controller) {
                             return InkWell(
                               onTap: () {
-                                castVote(5);
+                                // castVote(5);
+                                castVoteV2("sushi", 5);
                                 controller.forward(from: 0.0);
                               },
                               child: CircleAvatar(
@@ -400,7 +451,8 @@ class _BattlePageState extends State<BattlePage> {
                                 pimpedWidgetBuilder: (context, controller) {
                                   return InkWell(
                                     onTap: () {
-                                      castVote(20);
+                                      // castVote(20);
+                                      castVoteV2("broccoli", 20);
                                       controller.forward(from: 0.0);
                                       _tabCounter = 0;
                                     },

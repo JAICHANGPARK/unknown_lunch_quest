@@ -8,6 +8,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_date_picker_timeline/flutter_date_picker_timeline.dart';
 import 'package:flutter_lunch_quest/src/db/pref_api.dart';
 import 'package:flutter_lunch_quest/src/enums/EnumPart.dart';
+import 'package:flutter_lunch_quest/src/enums/enum_order_time.dart';
 import 'package:flutter_lunch_quest/src/model/user.dart' as mUser;
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
@@ -40,11 +41,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   TabController _bottomSheetTabController;
 
-  bool isOpen = false;
-  bool existRoom = false;
+  bool existRoom = false; // 방이 존재하는지 확인
   bool isPlaying = false;
-  bool isClosed = false;
-  bool isWeekend = false;
+  bool isClosed = false; // 방의 마감여부확인
+  bool isWeekend = false; // 주말인지 확인
 
   List<mUser.User> userList = []; // 전체 사용자 리스트를 담는 변수
   List<mUser.User> enterUserList = []; // 참가한 사용자 리스트를 담는 변수
@@ -55,7 +55,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int totalTicket;
 
   DateTime nowDateTime = DateTime.now(); // 생일자를 위한 매월 첫번째 주 월요일
+  String initDateTime;
+
   bool isParty = false;
+  int questUserCount = 0;
 
   Future refreshEnterUserList() async {
     DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
@@ -101,6 +104,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         if (enterUserList.length > 0) enterUserList.clear();
         // print(">>> documentSnapshot: ${documentSnapshot.get("users")}");
         // print(">>>> documentSnapshot data: ${documentSnapshot.data()}");
+        questUserCount = List.from(documentSnapshot.get("quest_entered")).length;
         documentSnapshot.get("users").forEach((element) {
           String part = "";
           if (element.toString().split(",").length == 1) {
@@ -134,13 +138,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     return querySnapshot.docs.first.data()["count"];
   }
 
-  Future<int> updateTotalTicketCount(int v) async {
+  Future<void> updateTotalTicketCount(int v) async {
     int total = await fetchTotalTicketCount();
     // print(total);
     QuerySnapshot querySnapshot = await firestore.collection("ticket").get();
     // print(querySnapshot.docs.first.data()["count"]);
     // print(querySnapshot.docs.first.id);
     await querySnapshot.docs.first.ref.update(data: {"count": (total - v)});
+  }
+
+  Future<void> onSetTotalTicketCount(int value) async {
+    QuerySnapshot querySnapshot = await firestore.collection("ticket").get();
+    int total = querySnapshot.docs.first.data()["count"];
+    await querySnapshot.docs.first.ref.update(data: {"count": (total + value)});
   }
 
   @override
@@ -192,6 +202,20 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     //     userList = value;
     //   });
     // });
+  }
+
+  @override
+  void didChangeDependencies() {
+    // TODO: implement didChangeDependencies
+    super.didChangeDependencies();
+    readSelectDate().then((value) {
+      // print(">>> readSelectDate : $value");
+      if (value != null) {
+        setState(() {
+          initDateTime = value;
+        });
+      }
+    });
   }
 
   @override
@@ -257,8 +281,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           endDate: DateTime.now(),
                           initialSelectedDate: DateTime.now(),
                           onSelectedDateChange: (DateTime dateTime) async {
-                            print(dateTime);
-
+                            // print(dateTime);
                             if (dateTime.weekday == 6 || dateTime.weekday == 7) {
                               setState(() {
                                 isWeekend = true;
@@ -269,6 +292,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               });
                             }
                             currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
+                            await saveSelectDate(dateTime.toString());
                             await checkExistRoom(currentDate);
                             setState(() {});
                           },
@@ -315,15 +339,30 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                           context: _drawerKey.currentContext,
                                           builder: (context) => AlertDialog(
                                                 title: Text("식권 수정하기"),
-                                                content: TextField(
-                                                  controller: tmp,
-                                                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                                content: Column(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Text("식권을 추가 구매했을 때 사용해주세요."),
+                                                    TextField(
+                                                      controller: tmp,
+                                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                                    ),
+                                                  ],
                                                 ),
                                                 actions: [
                                                   ElevatedButton(
-                                                    onPressed: () {
+                                                    onPressed: () async {
                                                       if (tmp.text.length > 0) {
-                                                      } else {}
+                                                        int v = int.parse(tmp.text);
+                                                        await onSetTotalTicketCount(v);
+                                                        totalTicket = await fetchTotalTicketCount();
+                                                        Fluttertoast.showToast(msg: "처리 완료");
+                                                        setState(() {});
+
+                                                        Navigator.of(context).pop();
+                                                      } else {
+                                                        Fluttertoast.showToast(msg: "추가할 식권수를 입력해주세요");
+                                                      }
                                                     },
                                                     child: Text("추가하기"),
                                                   ),
@@ -397,7 +436,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ),
                   //TODO: 참가인원 뷰
                   SizedBox(
-                      height: MediaQuery.of(context).size.height / 1.3,
+                      height: MediaQuery.of(context).size.height / 1.15,
                       width: MediaQuery.of(context).size.width,
                       child: !isWeekend
                           ? existRoom
@@ -427,11 +466,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     ),
                                                   ),
                                                 ),
-                                                Divider(
-                                                  height: 6,
-                                                ),
+                                                Divider(height: 6),
+                                                //TODO: 파티 목록
                                                 Expanded(
-                                                  flex: 2,
+                                                  flex: 3,
                                                   child: Padding(
                                                     padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
                                                     child: Row(
@@ -551,8 +589,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     ),
                                                   ),
                                                 ),
+                                                //TODO: 퀘스트 참가 버튼
                                                 Expanded(
-                                                  flex: 2,
+                                                  flex: 3,
                                                   child: Padding(
                                                       padding: const EdgeInsets.all(8.0),
                                                       child: MaterialButton(
@@ -561,17 +600,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                         onPressed: () async {
                                                           await saveDateCounter(currentDate);
                                                           Navigator.of(context).pushNamed("/quest/battle/monster");
-                                                          // Navigator.push(
-                                                          //     context,
-                                                          //     MaterialPageRoute(
-                                                          //         builder: (context) => BattlePage(date: ,currentDate)));
                                                         },
-                                                        child: Text(
-                                                          "퀘스트참가",
-                                                          style: TextStyle(color: Colors.white),
+                                                        child: Padding(
+                                                          padding: const EdgeInsets.symmetric(vertical: 8),
+                                                          child: Text(
+                                                            "퀘스트참가 (현재 $questUserCount명 참가 중)",
+                                                            textAlign: TextAlign.center,
+                                                            style: TextStyle(color: Colors.white),
+                                                          ),
                                                         ),
                                                       )),
                                                 ),
+                                                //TODO: 참가 인원 뷰
                                                 Expanded(
                                                   flex: 2,
                                                   child: Padding(
@@ -596,8 +636,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     ),
                                                   ),
                                                 ),
+                                                //TODO: 참가 인원 리스트뷰
                                                 Expanded(
-                                                  flex: 15,
+                                                  flex: 24,
                                                   child: ListView.separated(
                                                       separatorBuilder: (context, index) {
                                                         return Divider(
@@ -836,1116 +877,265 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               : buildEmptyRoomWidget()
                           : buildWeekendWidget()),
                   SizedBox(height: 24),
-                ],
-              ),
-            ),
-          ),
-          bottomNavigationBar: BottomAppBar(
-            shape: CircularNotchedRectangle(),
-            notchMargin: 12.0,
-            child: Container(
-              height: 72,
-              child: Row(
-                children: [
-                  Expanded(
-                      child: Padding(
-                    padding: const EdgeInsets.only(right: 64, left: 16, top: 8, bottom: 8),
-                    child: OutlinedButton(
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          "마감",
-                          style: TextStyle(fontSize: 20),
-                        ),
-                      ),
-                      onPressed: existRoom
-                          ? () {
-                              if (isClosed) {
-                                showDialog(
-                                    context: _drawerKey.currentContext,
-                                    builder: (context) => AlertDialog(
-                                          title: Text("안내"),
-                                          content: Text(
-                                            "이미 종료된 방입니다.",
-                                          ),
-                                          actions: [
-                                            ElevatedButton(
-                                                onPressed: () {
-                                                  Navigator.of(context).pop();
-                                                },
-                                                child: Text("확인")),
-                                          ],
-                                        ));
-                              } else {
-                                showDialog(
-                                    context: _drawerKey.currentContext,
-                                    builder: (context) => AlertDialog(
-                                          title: Text("퀘스트종료"),
-                                          content: Text(
-                                            "마감하고 방을 닫을까요? 한번 닫으면 다시 열수 없습니다. 주의해주세요",
-                                          ),
-                                          actions: [
-                                            ElevatedButton(
-                                                onPressed: () async {
-                                                  await onSetRoomClose(currentDate);
-                                                  await onCheckRoomClosed(currentDate);
-                                                  await updateTotalTicketCount(enterUserList.length);
-                                                  totalTicket = await fetchTotalTicketCount();
-                                                  setState(() {});
-                                                  Navigator.of(context).pop();
-                                                },
-                                                child: Text("확인")),
-                                            ElevatedButton(
-                                                onPressed: () {
-                                                  Navigator.of(context).pop();
-                                                },
-                                                child: Text("취소")),
-                                          ],
-                                        ));
-                              }
-                            }
-                          : null,
-                    ),
-                  )),
-                  Expanded(
-                      child: Padding(
-                    padding: const EdgeInsets.only(left: 64, right: 16),
-                    child: Tooltip(
-                      message: "참가신청",
-                      child: MaterialButton(
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        child: Text("참가신청", style: TextStyle(color: Colors.white, fontSize: 20)),
-                        color: Colors.black,
-                        onPressed: existRoom
-                            ? () async {
-                                if (isClosed) {
-                                  showDialog(
-                                      context: _drawerKey.currentContext,
-                                      builder: (context) => AlertDialog(
-                                            title: Text("안내"),
-                                            content: Text(
-                                              "이미 종료된 방입니다. 다음에 다시 참여해주세요!",
-                                            ),
-                                            actions: [
-                                              ElevatedButton(
-                                                  onPressed: () {
-                                                    Navigator.of(context).pop();
-                                                  },
-                                                  child: Text("확인")),
-                                            ],
-                                          ));
-                                } else {
-                                  if (userList.isNotEmpty) userList.clear();
-                                  print("allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
 
-                                  userList.addAll(FirebaseInstance.instance.allUserList);
-                                  print("userList size: ${userList.length}");
-                                  if (userList.length > 0) {
-                                    //TODO: 전체 사용자를 복사함
-                                    List<mUser.User> leftUserItems = userList;
-                                    print("enterUserList size: ${enterUserList.length}");
-                                    //TODO: 방에 있는 인원(이미 신청된 인원의 목록을 돌려 전체 사용자에서 제거
-                                    enterUserList.forEach((element) {
-                                      leftUserItems.removeWhere((v) => v.name == element.name);
-                                      // userList.where((v) => v.name != element.name).toList();
-                                      // 중복된 값을 제거해야함. 이미 포함된 사용자를 제외하고 값을 얻고자함.
-                                    });
-
-                                    //TODO: 남은 사용사의 체크 목록을 초기화
-                                    for (int i = 0; i < leftUserItems.length; i++) {
-                                      leftUserItems[i].isCheck = false;
+                  //TODO: 도시락 나중에 한꺼번에 신청 뷰
+                  (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
+                      ? MaterialButton(
+                          onPressed: () async {
+                            var bentoTempItems = enterUserList.where((element) => element.part == "도시락").toList();
+                            OrderTime orderTime = OrderTime.one;
+                            String orderTimeText = "11시";
+                            if (bentoTempItems.length > 0) {
+                              await showDialog(
+                                  context: _drawerKey.currentContext,
+                                  builder: (context) {
+                                    for (int i = 0; i < bentoTempItems.length; i++) {
+                                      bentoTempItems[i].isCheck = true;
                                     }
-
-                                    await showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        builder: (context) {
-                                          return Container(
-                                            height: MediaQuery.of(context).size.height / 1.15,
-                                            child: StatefulBuilder(
-                                              builder: (BuildContext context, void Function(void Function()) setState) {
-                                                return Column(
-                                                  children: [
-                                                    SizedBox(
-                                                      height: 16,
-                                                    ),
-                                                    Container(
-                                                      height: 4,
-                                                      width: 32,
-                                                      decoration: BoxDecoration(
-                                                          color: Colors.grey, borderRadius: BorderRadius.circular(8)),
-                                                    ),
-                                                    Padding(
-                                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                                      child: Text(
-                                                        "대기인원 목록",
-                                                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                                      ),
-                                                    ),
-                                                    TabBar(
-                                                      isScrollable: true,
-                                                      labelColor: Theme.of(context).accentColor,
-                                                      unselectedLabelColor: Colors.grey,
-                                                      controller: _bottomSheetTabController,
-                                                      indicatorSize: TabBarIndicatorSize.label,
-                                                      indicatorColor: Theme.of(context).accentColor,
-                                                      tabs: [
-                                                        Tab(text: "c_level"),
-                                                        Tab(text: "기타"),
-                                                        Tab(text: "대외협력팀"),
-                                                        Tab(text: "로봇연구개발팀"),
-                                                        Tab(text: "로봇재활지원팀"),
-                                                        Tab(text: "생산총괄팀"),
-                                                        Tab(text: "영업팀"),
-                                                        Tab(text: "인사총무팀"),
-                                                        Tab(text: "재무회계팀"),
-                                                        Tab(text: "홍보마케팅"),
-                                                      ],
-                                                    ),
-                                                    SizedBox(
-                                                      height: MediaQuery.of(context).size.height / 2,
-                                                      child:
-                                                          TabBarView(controller: _bottomSheetTabController, children: [
-                                                        //TODO clevel
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "c_level") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "c_level") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "c_level")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "c_level").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "c_level")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "c_level")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "c_level")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "c_level")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        // Container(
-                                                        //   height: MediaQuery.of(context).size.height / 2,
-                                                        //   child: ListView.separated(
-                                                        //     itemCount: leftUserItems.length,
-                                                        //     itemBuilder: (context, index) {
-                                                        //       return Tooltip(
-                                                        //         message: '${leftUserItems[index].name}',
-                                                        //         child: CheckboxListTile(
-                                                        //           title: Text(leftUserItems[index].name),
-                                                        //           subtitle: Text(leftUserItems[index].team),
-                                                        //           onChanged: (bool value) {
-                                                        //             print(value);
-                                                        //             setState(() {
-                                                        //               leftUserItems[index].isCheck = value;
-                                                        //             });
-                                                        //           },
-                                                        //           value: leftUserItems[index].isCheck,
-                                                        //         ),
-                                                        //       );
-                                                        //     },
-                                                        //     separatorBuilder: (BuildContext context, int index) {
-                                                        //       return Divider(
-                                                        //         height: 6,
-                                                        //       );
-                                                        //     },
-                                                        //   ),
-                                                        // ),
-                                                        //TODO 기타
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "기타") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "기타") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "기타")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "기타").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "기타")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "기타")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where((element) => element.team == "기타")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "기타")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO 대외 협력팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "대외협력팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "대외협력팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "대외협력팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "대외협력팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "대외협력팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "대외협력팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "대외협력팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "대외협력팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  로봇연구개발팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "로봇연구개발팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "로봇연구개발팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "로봇연구개발팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "로봇연구개발팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "로봇연구개발팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "로봇연구개발팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "로봇연구개발팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "로봇연구개발팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  로봇재활지원팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "로봇재활지원팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "로봇재활지원팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "로봇재활지원팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "로봇재활지원팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "로봇재활지원팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "로봇재활지원팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where((element) =>
-                                                                                  element.team == "로봇재활지원팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "로봇재활지원팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  생산총괄팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "생산총괄팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "생산총괄팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "생산총괄팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "생산총괄팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "생산총괄팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "생산총괄팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "생산총괄팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "생산총괄팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  영업팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "영업팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "영업팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "영업팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "영업팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "영업팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "영업팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where((element) => element.team == "영업팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "영업팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  인사총무팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "인사총무팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "인사총무팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "인사총무팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "인사총무팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "인사총무팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "인사총무팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "인사총무팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "인사총무팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  재무회계팀
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "재무회계팀") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "재무회계팀") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "재무회계팀")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "재무회계팀").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "재무회계팀")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "재무회계팀")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "재무회계팀")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "재무회계팀")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                        //TODO  홍보마케팅
-                                                        Column(
-                                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                                          children: [
-                                                            Expanded(
-                                                              flex: 2,
-                                                              child: ButtonBar(
-                                                                children: [
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "홍보마케팅") {
-                                                                          leftUserItems[i].isCheck = false;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체취소"),
-                                                                  ),
-                                                                  ElevatedButton(
-                                                                    onPressed: () {
-                                                                      for (int i = 0; i < leftUserItems.length; i++) {
-                                                                        if (leftUserItems[i].team == "홍보마케팅") {
-                                                                          leftUserItems[i].isCheck = true;
-                                                                        }
-                                                                      }
-                                                                      setState(() {});
-                                                                    },
-                                                                    child: Text("전체선택"),
-                                                                  )
-                                                                ],
-                                                              ),
-                                                            ),
-                                                            SizedBox(
-                                                              height: 8,
-                                                            ),
-                                                            Expanded(
-                                                              flex: 12,
-                                                              child: ListView.separated(
-                                                                itemCount: leftUserItems
-                                                                    .where((element) => element.team == "홍보마케팅")
-                                                                    .length,
-                                                                itemBuilder: (context, index) {
-                                                                  return Tooltip(
-                                                                    message:
-                                                                        '${leftUserItems.where((element) => element.team == "홍보마케팅").toList()[index].name}',
-                                                                    child: CheckboxListTile(
-                                                                      title: Text(leftUserItems
-                                                                          .where((element) => element.team == "홍보마케팅")
-                                                                          .toList()[index]
-                                                                          .name),
-                                                                      subtitle: Text(leftUserItems
-                                                                          .where((element) => element.team == "홍보마케팅")
-                                                                          .toList()[index]
-                                                                          .team),
-                                                                      onChanged: (bool value) {
-                                                                        print(value);
-                                                                        setState(() {
-                                                                          leftUserItems
-                                                                              .where(
-                                                                                  (element) => element.team == "홍보마케팅")
-                                                                              .toList()[index]
-                                                                              .isCheck = value;
-                                                                        });
-                                                                      },
-                                                                      value: leftUserItems
-                                                                          .where((element) => element.team == "홍보마케팅")
-                                                                          .toList()[index]
-                                                                          .isCheck,
-                                                                    ),
-                                                                  );
-                                                                },
-                                                                separatorBuilder: (BuildContext context, int index) {
-                                                                  return Divider(
-                                                                    height: 6,
-                                                                  );
-                                                                },
-                                                              ),
-                                                            ),
-                                                          ],
-                                                        ),
-                                                      ]),
-                                                    ),
-                                                    SizedBox(
-                                                      height: 16,
-                                                    ),
-                                                    Tooltip(
-                                                      message: '신청하기',
-                                                      child: GestureDetector(
-                                                        onTap: () async {
-                                                          await onRegistrationUser(leftUserItems);
+                                    return AlertDialog(
+                                      title: Text("도시락 예약하기"),
+                                      content: StatefulBuilder(
+                                        builder: (BuildContext context, void Function(void Function()) setState) {
+                                          return SizedBox(
+                                            height: MediaQuery.of(context).size.height / 1.5,
+                                            width: MediaQuery.of(context).size.width,
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text("1층 회사식당에 도시락을 예약합니다."),
+                                                Text("현재 기능은 모바일에서만 가능합니다."),
+                                                Divider(
+                                                  color: Colors.grey,
+                                                ),
+                                                Text("수령할 시간을 선택하세요."),
+                                                SizedBox(height: 16,),
+                                                Expanded(
+                                                  flex: 1,
+                                                  child: ListView(
+                                                    shrinkWrap: true,
+                                                    scrollDirection: Axis.horizontal,
+                                                    children: [
+                                                      ChoiceChip(
+                                                        label: Text("11:00"),
+                                                        selected: orderTime == OrderTime.one,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.one;
+                                                            orderTimeText = "11시";
+                                                          });
                                                         },
-                                                        child: Container(
-                                                          height: 72,
-                                                          decoration: BoxDecoration(color: Colors.black),
-                                                          child: Center(
-                                                            child: Text(
-                                                              "신청하기 (${leftUserItems.where((element) => element.isCheck == true).toList().length}명)",
-                                                              style: TextStyle(color: Colors.white, fontSize: 18),
-                                                            ),
-                                                          ),
-                                                        ),
                                                       ),
-                                                    )
-                                                  ],
-                                                );
-                                              },
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("11:10"),
+                                                        selected: orderTime == OrderTime.two,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.two;
+                                                            orderTimeText = "11시 10분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("11:20"),
+                                                        selected: orderTime == OrderTime.three,
+                                                        onSelected: (b) {
+
+                                                          setState(() {
+                                                            orderTime = OrderTime.three;
+                                                            orderTimeText = "11시 20분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("11:30"),
+                                                        selected: orderTime == OrderTime.fore,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.fore;
+                                                            orderTimeText = "11시 30분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("11:40"),
+                                                        selected: orderTime == OrderTime.five,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.five;
+                                                            orderTimeText = "11시 40분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("11:50"),
+                                                        selected: orderTime == OrderTime.six,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.six;
+                                                            orderTimeText = "11시 50분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("12:00"),
+                                                        selected: orderTime == OrderTime.seven,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.seven;
+                                                            orderTimeText = "12시 00분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("12:10"),
+                                                        selected: orderTime == OrderTime.eight,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.eight;
+                                                            orderTimeText = "12시 10분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("12:20"),
+                                                        selected: orderTime == OrderTime.nine,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.nine;
+                                                            orderTimeText = "12시 20분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                      ChoiceChip(
+                                                        label: Text("12:30"),
+                                                        selected: orderTime == OrderTime.ten,
+                                                        onSelected: (b) {
+                                                          setState(() {
+                                                            orderTime = OrderTime.ten;
+                                                            orderTimeText = "12시 30분";
+                                                          });
+                                                        },
+                                                      ),
+                                                      SizedBox(width: 10),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Expanded(
+                                                  flex: 10,
+                                                  child: ListView.builder(
+                                                      itemCount: bentoTempItems.length,
+                                                      itemBuilder: (context, index) {
+                                                        return CheckboxListTile(
+                                                          title: Text(bentoTempItems[index].name),
+                                                          onChanged: (bool value) {
+                                                            print(">>> value : $value");
+                                                            bentoTempItems[index].isCheck = value;
+                                                            setState(() {});
+                                                          },
+                                                          value: bentoTempItems[index].isCheck,
+                                                        );
+                                                      }),
+                                                ),
+                                                Divider(
+                                                  color: Colors.grey,
+                                                ),
+                                                Expanded(
+                                                    flex: 2,
+                                                    child: Column(
+                                                      children: [
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [
+                                                            Text("총 인원"),
+                                                            Text(
+                                                                "${bentoTempItems.where((element) => element.isCheck == true).length}명")
+                                                          ],
+                                                        ),
+                                                        Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [Text("예약시간"), Text(orderTimeText)],
+                                                        ),
+                                                      ],
+                                                    )),
+                                              ],
                                             ),
                                           );
-                                        });
-                                  } else {
-                                    Fluttertoast.showToast(
-                                      msg: "정보를 가져오고 있습니다. 잠시만 기다려주세요",
+                                        },
+                                      ),
+                                      actions: [
+                                        ElevatedButton(
+                                            onPressed: () async {
+                                              String url = 'tel:01020138844';
+                                              launch(url);
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Text("전화로하기")),
+                                        ElevatedButton(
+                                            onPressed: () async {
+                                              String url =
+                                                  'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 ${bentoTempItems.where((element) => element.isCheck == true).length}명 $orderTimeText에 도시락 받으러갈게요!';
+                                              launch(url);
+                                              Navigator.of(context).pop();
+                                            },
+                                            child: Text("아이폰")),
+                                        ElevatedButton(
+                                          onPressed: () async {
+                                            // Fluttertoast.showToast(
+                                            //     msg: "웹이에요");
+                                            String url =
+                                                'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 ${bentoTempItems.where((element) => element.isCheck == true).length}명 $orderTimeText에 도시락 받으러갈게요!';
+                                            launch(url);
+                                            Navigator.of(context).pop();
+                                          },
+                                          child: Text("안드로이드"),
+                                        )
+                                      ],
                                     );
-                                  }
-                                }
-                              }
-                            : null,
-                      ),
-                    ),
-                  )),
+                                  });
+                            } else {
+                              showDialog(
+                                context: _drawerKey.currentContext,
+                                builder: (context) => AlertDialog(
+                                  content: Text("현재 참가인원 중에 도시락 참가자가 없습니다."),
+                                  actions: [
+                                    ElevatedButton(
+                                        onPressed: () {
+                                          Navigator.of(context).pop();
+                                        },
+                                        child: Text("확인"))
+                                  ],
+                                ),
+                              );
+                            }
+                          },
+                          color: Colors.black,
+                          minWidth: double.infinity,
+                          child: Padding(
+                            padding: EdgeInsets.symmetric(vertical: 16),
+                            child: Text(
+                              "도시락 예약",
+                              style: TextStyle(color: Colors.white),
+                            ),
+                          ),
+                        )
+                      : Container(),
+                  SizedBox(height: 48),
                 ],
               ),
             ),
           ),
+          bottomNavigationBar: buildBottomAppBar(),
           floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-          floatingActionButton: FloatingActionButton(
-            onPressed: () async {
-              if (isClosed) {
-                showDialog(
-                    context: _drawerKey.currentContext,
-                    builder: (context) => AlertDialog(
-                          title: Text("안내"),
-                          content: Text(
-                            "이미 종료된 방입니다.",
-                          ),
-                          actions: [
-                            ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text("확인")),
-                          ],
-                        ));
-                return;
-              }
-              // print(currentDate);
-              DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
-              // print(querySnapshot);
-              if (querySnapshot == null || !querySnapshot.exists) {
-                // Document with id == docId doesn't exist.
-                print("Not exist");
-                showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                          content: Text("생성된 방이 없습니다."),
-                          actions: [
-                            ElevatedButton(
-                                onPressed: () {
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text("확인")),
-                            ElevatedButton(
-                                onPressed: () async {
-                                  // DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
-                                  await firestore
-                                      .collection("lunch")
-                                      .doc(currentDate)
-                                      .set({"users": [], "isClosed": false, "damage": 0, "quest_entered": []});
-
-                                  Fluttertoast.showToast(msg: "방만들기 성공", webPosition: "center");
-                                  setState(() {
-                                    existRoom = true;
-                                  });
-                                  Navigator.of(context).pop();
-                                },
-                                child: Text("방만들기"))
-                          ],
-                        ));
-              } else {
-                Fluttertoast.showToast(msg: "이미 생성된 방이 존재합니다.", webPosition: "center");
-              }
-            },
-            tooltip: '방만들기',
-            child: Icon(Icons.add),
-          ), // This trailing comma makes auto-formatting nicer for build methods.
+          floatingActionButton: buildFABButton(),
         ),
         drawerItems: buildDrawerMenuWidgets(),
         controller: _controller,
@@ -2047,8 +1237,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               child: Text("아이폰")),
                           ElevatedButton(
                             onPressed: () async {
-                              // Fluttertoast.showToast(
-                              //     msg: "웹이에요");
                               String url =
                                   'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
                               launch(url);
@@ -2121,6 +1309,1135 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
   }
 
+  Widget buildFABButton() {
+    return FloatingActionButton(
+      onPressed: () async {
+        if (isWeekend) {
+          return;
+        }
+        if (isClosed) {
+          showDialog(
+              context: _drawerKey.currentContext,
+              builder: (context) => AlertDialog(
+                    title: Text("안내"),
+                    content: Text(
+                      "이미 종료된 방입니다.",
+                    ),
+                    actions: [
+                      ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("확인")),
+                    ],
+                  ));
+          return;
+        }
+        // print(currentDate);
+        DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
+        // print(querySnapshot);
+        if (querySnapshot == null || !querySnapshot.exists) {
+          // Document with id == docId doesn't exist.
+          print("Not exist");
+          showDialog(
+              context: context,
+              builder: (context) => AlertDialog(
+                    content: Text("생성된 방이 없습니다."),
+                    actions: [
+                      ElevatedButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("확인")),
+                      ElevatedButton(
+                          onPressed: () async {
+                            // DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
+                            await firestore.collection("lunch").doc(currentDate).set({
+                              "users": [],
+                              "isClosed": false,
+                              "damage": 0,
+                              "quest_entered": [],
+                              "pizza": 0,
+                              "hamburger": 0,
+                              "sushi": 0,
+                              "taco": 0,
+                              "broccoli": 0,
+                            });
+
+                            Fluttertoast.showToast(msg: "방만들기 성공", webPosition: "center");
+                            setState(() {
+                              existRoom = true;
+                            });
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("방만들기"))
+                    ],
+                  ));
+        } else {
+          Fluttertoast.showToast(msg: "이미 생성된 방이 존재합니다.", webPosition: "center");
+        }
+      },
+      tooltip: '방만들기',
+      child: Icon(Icons.add),
+    );
+  }
+
+  Widget buildBottomAppBar() {
+    return BottomAppBar(
+      shape: CircularNotchedRectangle(),
+      notchMargin: 12.0,
+      child: Container(
+        height: 72,
+        child: Row(
+          children: [
+            Expanded(
+                child: Padding(
+              padding: const EdgeInsets.only(right: 64, left: 16, top: 8, bottom: 8),
+              child: Tooltip(
+                message: "마감하기",
+                child: OutlinedButton(
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      "마감",
+                      style: TextStyle(fontSize: 20),
+                    ),
+                  ),
+                  onPressed: isWeekend
+                      ? () {
+                          return;
+                        }
+                      : existRoom
+                          ? () {
+                              if (isClosed) {
+                                //TODO: 방이 이미 닫힌경우
+                                showDialog(
+                                    context: _drawerKey.currentContext,
+                                    builder: (context) => AlertDialog(
+                                          title: Text("안내"),
+                                          content: Text(
+                                            "이미 종료된 방입니다.",
+                                          ),
+                                          actions: [
+                                            ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("확인")),
+                                          ],
+                                        ));
+                              } else {
+                                showDialog(
+                                    context: _drawerKey.currentContext,
+                                    builder: (context) => AlertDialog(
+                                          title: Text("퀘스트종료"),
+                                          content: Text(
+                                            "마감하고 방을 닫을까요? 한번 닫으면 다시 열수 없습니다. 주의해주세요",
+                                          ),
+                                          actions: [
+                                            ElevatedButton(
+                                                onPressed: () async {
+                                                  await onSetRoomClose(currentDate);
+                                                  await onCheckRoomClosed(currentDate);
+                                                  await updateTotalTicketCount(enterUserList.length);
+                                                  totalTicket = await fetchTotalTicketCount();
+                                                  setState(() {});
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("확인")),
+                                            ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("취소")),
+                                          ],
+                                        ));
+                              }
+                            }
+                          : null,
+                ),
+              ),
+            )),
+            Expanded(
+                child: Padding(
+              padding: const EdgeInsets.only(left: 64, right: 16),
+              child: Tooltip(
+                message: "참가신청",
+                child: MaterialButton(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Text("참가신청", style: TextStyle(color: Colors.white, fontSize: 18)),
+                  color: Colors.black,
+                  onPressed: isWeekend
+                      ? () {
+                          Fluttertoast.showToast(msg: "주말은 쉬어갑니다");
+                          return;
+                        }
+                      : existRoom
+                          ? () async {
+                              if (isClosed) {
+                                showDialog(
+                                    context: _drawerKey.currentContext,
+                                    builder: (context) => AlertDialog(
+                                          title: Text("안내"),
+                                          content: Text(
+                                            "이미 종료된 방입니다. 다음에 다시 참여해주세요!",
+                                          ),
+                                          actions: [
+                                            ElevatedButton(
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("확인")),
+                                          ],
+                                        ));
+                              } else {
+                                if (userList.isNotEmpty) userList.clear();
+                                print("allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
+
+                                userList.addAll(FirebaseInstance.instance.allUserList);
+                                print("userList size: ${userList.length}");
+                                if (userList.length > 0) {
+                                  //TODO: 전체 사용자를 복사함
+                                  List<mUser.User> leftUserItems = userList;
+                                  print("enterUserList size: ${enterUserList.length}");
+                                  //TODO: 방에 있는 인원(이미 신청된 인원의 목록을 돌려 전체 사용자에서 제거
+                                  enterUserList.forEach((element) {
+                                    leftUserItems.removeWhere((v) => v.name == element.name);
+                                    // userList.where((v) => v.name != element.name).toList();
+                                    // 중복된 값을 제거해야함. 이미 포함된 사용자를 제외하고 값을 얻고자함.
+                                  });
+
+                                  //TODO: 남은 사용사의 체크 목록을 초기화
+                                  for (int i = 0; i < leftUserItems.length; i++) {
+                                    leftUserItems[i].isCheck = false;
+                                  }
+
+                                  //TODO: 참가 인원선택을 위한 BottomSheet
+                                  await showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      builder: (context) {
+                                        return Container(
+                                          height: MediaQuery.of(context).size.height / 1.15,
+                                          child: StatefulBuilder(
+                                            builder: (BuildContext context, void Function(void Function()) setState) {
+                                              return Column(
+                                                children: [
+                                                  SizedBox(
+                                                    height: 16,
+                                                  ),
+                                                  Container(
+                                                    height: 4,
+                                                    width: 32,
+                                                    decoration: BoxDecoration(
+                                                        color: Colors.grey, borderRadius: BorderRadius.circular(8)),
+                                                  ),
+                                                  Padding(
+                                                    padding: const EdgeInsets.symmetric(vertical: 16),
+                                                    child: Text(
+                                                      "대기인원 목록",
+                                                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ),
+                                                  TabBar(
+                                                    isScrollable: true,
+                                                    labelColor: Theme.of(context).accentColor,
+                                                    unselectedLabelColor: Colors.grey,
+                                                    controller: _bottomSheetTabController,
+                                                    indicatorSize: TabBarIndicatorSize.label,
+                                                    indicatorColor: Theme.of(context).accentColor,
+                                                    tabs: [
+                                                      Tab(text: "c_level"),
+                                                      Tab(text: "기타"),
+                                                      Tab(text: "대외협력팀"),
+                                                      Tab(text: "로봇연구개발팀"),
+                                                      Tab(text: "로봇재활지원팀"),
+                                                      Tab(text: "생산총괄팀"),
+                                                      Tab(text: "영업팀"),
+                                                      Tab(text: "인사총무팀"),
+                                                      Tab(text: "재무회계팀"),
+                                                      Tab(text: "홍보마케팅"),
+                                                    ],
+                                                  ),
+                                                  SizedBox(
+                                                    height: MediaQuery.of(context).size.height / 2,
+                                                    child: TabBarView(controller: _bottomSheetTabController, children: [
+                                                      //TODO clevel
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "c_level") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "c_level") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "c_level")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "c_level").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "c_level")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "c_level")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where(
+                                                                                (element) => element.team == "c_level")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "c_level")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      // Container(
+                                                      //   height: MediaQuery.of(context).size.height / 2,
+                                                      //   child: ListView.separated(
+                                                      //     itemCount: leftUserItems.length,
+                                                      //     itemBuilder: (context, index) {
+                                                      //       return Tooltip(
+                                                      //         message: '${leftUserItems[index].name}',
+                                                      //         child: CheckboxListTile(
+                                                      //           title: Text(leftUserItems[index].name),
+                                                      //           subtitle: Text(leftUserItems[index].team),
+                                                      //           onChanged: (bool value) {
+                                                      //             print(value);
+                                                      //             setState(() {
+                                                      //               leftUserItems[index].isCheck = value;
+                                                      //             });
+                                                      //           },
+                                                      //           value: leftUserItems[index].isCheck,
+                                                      //         ),
+                                                      //       );
+                                                      //     },
+                                                      //     separatorBuilder: (BuildContext context, int index) {
+                                                      //       return Divider(
+                                                      //         height: 6,
+                                                      //       );
+                                                      //     },
+                                                      //   ),
+                                                      // ),
+                                                      //TODO 기타
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "기타") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "기타") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "기타")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "기타").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "기타")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "기타")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "기타")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "기타")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO 대외 협력팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "대외협력팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "대외협력팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "대외협력팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "대외협력팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "대외협력팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "대외협력팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "대외협력팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "대외협력팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  로봇연구개발팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "로봇연구개발팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "로봇연구개발팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "로봇연구개발팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "로봇연구개발팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "로봇연구개발팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "로봇연구개발팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where(
+                                                                                (element) => element.team == "로봇연구개발팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "로봇연구개발팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  로봇재활지원팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "로봇재활지원팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "로봇재활지원팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "로봇재활지원팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "로봇재활지원팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "로봇재활지원팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "로봇재활지원팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where(
+                                                                                (element) => element.team == "로봇재활지원팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "로봇재활지원팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  생산총괄팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "생산총괄팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "생산총괄팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "생산총괄팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "생산총괄팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "생산총괄팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "생산총괄팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "생산총괄팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "생산총괄팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  영업팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "영업팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "영업팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "영업팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "영업팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "영업팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "영업팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "영업팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "영업팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  인사총무팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "인사총무팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "인사총무팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "인사총무팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "인사총무팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "인사총무팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "인사총무팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "인사총무팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "인사총무팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  재무회계팀
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "재무회계팀") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "재무회계팀") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "재무회계팀")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "재무회계팀").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "재무회계팀")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "재무회계팀")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "재무회계팀")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "재무회계팀")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                      //TODO  홍보마케팅
+                                                      Column(
+                                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                                        children: [
+                                                          Expanded(
+                                                            flex: 2,
+                                                            child: ButtonBar(
+                                                              children: [
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "홍보마케팅") {
+                                                                        leftUserItems[i].isCheck = false;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체취소"),
+                                                                ),
+                                                                ElevatedButton(
+                                                                  onPressed: () {
+                                                                    for (int i = 0; i < leftUserItems.length; i++) {
+                                                                      if (leftUserItems[i].team == "홍보마케팅") {
+                                                                        leftUserItems[i].isCheck = true;
+                                                                      }
+                                                                    }
+                                                                    setState(() {});
+                                                                  },
+                                                                  child: Text("전체선택"),
+                                                                )
+                                                              ],
+                                                            ),
+                                                          ),
+                                                          SizedBox(
+                                                            height: 8,
+                                                          ),
+                                                          Expanded(
+                                                            flex: 12,
+                                                            child: ListView.separated(
+                                                              itemCount: leftUserItems
+                                                                  .where((element) => element.team == "홍보마케팅")
+                                                                  .length,
+                                                              itemBuilder: (context, index) {
+                                                                return Tooltip(
+                                                                  message:
+                                                                      '${leftUserItems.where((element) => element.team == "홍보마케팅").toList()[index].name}',
+                                                                  child: CheckboxListTile(
+                                                                    title: Text(leftUserItems
+                                                                        .where((element) => element.team == "홍보마케팅")
+                                                                        .toList()[index]
+                                                                        .name),
+                                                                    subtitle: Text(leftUserItems
+                                                                        .where((element) => element.team == "홍보마케팅")
+                                                                        .toList()[index]
+                                                                        .team),
+                                                                    onChanged: (bool value) {
+                                                                      print(value);
+                                                                      setState(() {
+                                                                        leftUserItems
+                                                                            .where((element) => element.team == "홍보마케팅")
+                                                                            .toList()[index]
+                                                                            .isCheck = value;
+                                                                      });
+                                                                    },
+                                                                    value: leftUserItems
+                                                                        .where((element) => element.team == "홍보마케팅")
+                                                                        .toList()[index]
+                                                                        .isCheck,
+                                                                  ),
+                                                                );
+                                                              },
+                                                              separatorBuilder: (BuildContext context, int index) {
+                                                                return Divider(
+                                                                  height: 6,
+                                                                );
+                                                              },
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ]),
+                                                  ),
+                                                  SizedBox(
+                                                    height: 16,
+                                                  ),
+                                                  Tooltip(
+                                                    message: '신청하기',
+                                                    child: GestureDetector(
+                                                      onTap: () async {
+                                                        await onRegistrationUser(leftUserItems);
+                                                      },
+                                                      child: Container(
+                                                        height: 72,
+                                                        decoration: BoxDecoration(color: Colors.black),
+                                                        child: Center(
+                                                          child: Text(
+                                                            "신청하기 (${leftUserItems.where((element) => element.isCheck == true).toList().length}명)",
+                                                            style: TextStyle(color: Colors.white, fontSize: 18),
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  )
+                                                ],
+                                              );
+                                            },
+                                          ),
+                                        );
+                                      });
+                                } else {
+                                  Fluttertoast.showToast(
+                                    msg: "정보를 가져오고 있습니다. 잠시만 기다려주세요",
+                                  );
+                                }
+                              }
+                            }
+                          : null,
+                ),
+              ),
+            )),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget buildWeekendWidget() {
     return Card(
       child: Column(
@@ -2182,7 +2499,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                             return SizedBox(
                               height: MediaQuery.of(context).size.height / 2,
                               width: MediaQuery.of(context).size.width / 1.1,
-
                               child: Column(
                                 children: [
                                   Expanded(
@@ -2195,18 +2511,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             children: [
                                               Expanded(
                                                   child: Padding(
-                                                    padding: const EdgeInsets.only(left: 8),
-                                                    child: Row(
-                                                      children: [
-                                                        Image.asset(
-                                                          "assets/img/shield_1f6e1-fe0f.png",
-                                                          width: 24,
-                                                          height: 24,
-                                                        ),
-                                                        Text("도시락 파티"),
-                                                      ],
+                                                padding: const EdgeInsets.only(left: 8),
+                                                child: Row(
+                                                  children: [
+                                                    Image.asset(
+                                                      "assets/img/shield_1f6e1-fe0f.png",
+                                                      width: 24,
+                                                      height: 24,
                                                     ),
-                                                  )),
+                                                    Text("도시락 파티"),
+                                                  ],
+                                                ),
+                                              )),
                                               Expanded(
                                                 child: Row(
                                                   children: [
@@ -2214,9 +2530,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                       child: LinearPercentIndicator(
                                                         lineHeight: 6.0,
                                                         percent: (enterUserList
-                                                            .where((element) => element.part == "도시락")
-                                                            .toList()
-                                                            .length /
+                                                                .where((element) => element.part == "도시락")
+                                                                .toList()
+                                                                .length /
                                                             enterUserList.length),
                                                         progressColor: Theme.of(context).accentColor,
                                                       ),
@@ -2240,18 +2556,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             children: [
                                               Expanded(
                                                   child: Padding(
-                                                    padding: const EdgeInsets.only(left: 8),
-                                                    child: Row(
-                                                      children: [
-                                                        Image.asset(
-                                                          "assets/img/crossed-swords_2694-fe0f.png",
-                                                          width: 24,
-                                                          height: 24,
-                                                        ),
-                                                        Text("일반 파티"),
-                                                      ],
+                                                padding: const EdgeInsets.only(left: 8),
+                                                child: Row(
+                                                  children: [
+                                                    Image.asset(
+                                                      "assets/img/crossed-swords_2694-fe0f.png",
+                                                      width: 24,
+                                                      height: 24,
                                                     ),
-                                                  )),
+                                                    Text("일반 파티"),
+                                                  ],
+                                                ),
+                                              )),
                                               Expanded(
                                                 child: Row(
                                                   children: [
@@ -2259,9 +2575,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                       child: LinearPercentIndicator(
                                                         lineHeight: 6.0,
                                                         percent: (enterUserList
-                                                            .where((element) => element.part == "일반")
-                                                            .toList()
-                                                            .length /
+                                                                .where((element) => element.part == "일반")
+                                                                .toList()
+                                                                .length /
                                                             enterUserList.length),
                                                         progressColor: Colors.red,
                                                       ),
@@ -2290,31 +2606,31 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                               shrinkWrap: true,
                                               itemBuilder: (context, index) {
                                                 var normal =
-                                                enterUserList.where((element) => element.part == "도시락").toList();
+                                                    enterUserList.where((element) => element.part == "도시락").toList();
                                                 return ListTile(
                                                   onTap: () {
                                                     showDialog(
                                                         context: context,
                                                         builder: (context) => AlertDialog(
-                                                          title: Text("Don't panic"),
-                                                          content: Column(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Center(
-                                                                child: CircleAvatar(
-                                                                  radius: MediaQuery.of(context).size.width / 2,
-                                                                  backgroundImage: NetworkImage("https://thispersondoesnotexist.com/image"),
-                                                                  // Image.network()
-                                                                ),
+                                                              title: Text("Don't panic"),
+                                                              content: Column(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Center(
+                                                                    child: CircleAvatar(
+                                                                      radius: MediaQuery.of(context).size.width / 2,
+                                                                      backgroundImage: NetworkImage(
+                                                                          "https://thispersondoesnotexist.com/image"),
+                                                                      // Image.network()
+                                                                    ),
+                                                                  ),
+                                                                  Text("StyleGAN [AI]으로 생성된 가상의 인물입니다.")
+                                                                ],
                                                               ),
-                                                              Text("StyleGAN [AI]으로 생성된 가상의 인물입니다.")
-                                                            ],
-                                                          ),
-                                                        ));
+                                                            ));
                                                   },
-
                                                   title: Text(
-                                                    "${index+1} ${normal[index].name}",
+                                                    "${index + 1} ${normal[index].name}",
                                                     style: TextStyle(fontSize: 10),
                                                   ),
                                                   trailing: Text(
@@ -2331,30 +2647,31 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                               shrinkWrap: true,
                                               itemBuilder: (context, index) {
                                                 var normal =
-                                                enterUserList.where((element) => element.part == "일반").toList();
+                                                    enterUserList.where((element) => element.part == "일반").toList();
                                                 return ListTile(
                                                   onTap: () {
                                                     showDialog(
                                                         context: context,
                                                         builder: (context) => AlertDialog(
-                                                          title: Text("Don't panic"),
-                                                          content: Column(
-                                                            mainAxisSize: MainAxisSize.min,
-                                                            children: [
-                                                              Center(
-                                                                child: CircleAvatar(
-                                                                  radius: MediaQuery.of(context).size.width / 2,
-                                                                  backgroundImage: NetworkImage("https://thispersondoesnotexist.com/image"),
-                                                                  // Image.network()
-                                                                ),
+                                                              title: Text("Don't panic"),
+                                                              content: Column(
+                                                                mainAxisSize: MainAxisSize.min,
+                                                                children: [
+                                                                  Center(
+                                                                    child: CircleAvatar(
+                                                                      radius: MediaQuery.of(context).size.width / 2,
+                                                                      backgroundImage: NetworkImage(
+                                                                          "https://thispersondoesnotexist.com/image"),
+                                                                      // Image.network()
+                                                                    ),
+                                                                  ),
+                                                                  Text("StyleGAN [AI]으로 생성된 가상의 인물입니다.")
+                                                                ],
                                                               ),
-                                                              Text("StyleGAN [AI]으로 생성된 가상의 인물입니다.")
-                                                            ],
-                                                          ),
-                                                        ));
+                                                            ));
                                                   },
                                                   title: Text(
-                                                    "${index+1} ${normal[index].name}",
+                                                    "${index + 1} ${normal[index].name}",
                                                     style: TextStyle(fontSize: 10),
                                                   ),
                                                   trailing: Text(
@@ -2383,7 +2700,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               ),
                             );
                           },
-
                         ),
                         actions: [
                           ElevatedButton(
