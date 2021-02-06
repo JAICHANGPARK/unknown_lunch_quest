@@ -7,7 +7,7 @@ import 'package:flutter_lunch_quest/src/remote/coin_key.dart';
 import 'package:http/http.dart' as http;
 
 Future<Bitcoin> fetchLatestBitcoin() async {
-  print(">>> Call fetchLatestBitcoin");
+  // print(">>> Call fetchLatestBitcoin");
   String baseUrl = "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=50";
   var response = await http.get(
     baseUrl,
@@ -18,9 +18,9 @@ Future<Bitcoin> fetchLatestBitcoin() async {
       "Access-Control-Allow-Methods": "GET, HEAD"
     },
   );
-  print("response.statusCode : ${response.statusCode}");
+  // print("response.statusCode : ${response.statusCode}");
   if (response.statusCode == 200) {
-    print("Success");
+    // print("Success");
     Bitcoin bitcoin = Bitcoin.fromJson(jsonDecode(response.body));
     return bitcoin;
   }
