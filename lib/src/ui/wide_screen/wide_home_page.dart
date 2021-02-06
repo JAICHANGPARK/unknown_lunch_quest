@@ -26,18 +26,18 @@ class _WideHomePageState extends State<WideHomePage> {
       querySnapshot.docChanges().forEach((change) {
         List<String> userList = List<String>.from(change.doc.data()['users']);
         if (['added'].contains(change.type)) {
-          print("added");
+          // print("added");
           records.add(Record(
               date: change.doc.id,
               users: userList.map((e) => e.split(",").first).toList(),
               total: userList.length,
               isClosed: change.doc.data()['isClosed']));
         } else if (['modified'].contains(change.type)) {
-          print("modified");
-          print(change.doc.id);
+          // print("modified");
+          // print(change.doc.id);
 
           int idx = records.indexWhere((element) => element.date == change.doc.id);
-          print(idx);
+          // print(idx);
           if (idx != -1) {
             records.removeAt(idx);
             records.insert(

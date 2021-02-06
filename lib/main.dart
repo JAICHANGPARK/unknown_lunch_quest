@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lunch_quest/src/routes/arg_quest_date.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/about_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/record/mobile_record_page.dart';
 import 'package:flutter_lunch_quest/src/ui/wide_screen/wide_home_page.dart';
@@ -21,7 +22,7 @@ void main() {
 class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    print(">>> Called MyApp");
+    // print(">>> Called MyApp");
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Lunch Quest',
@@ -66,7 +67,7 @@ class MyApp extends StatelessWidget {
         "/contact": (context) => ContactPage(),
         "/bulletin_board": (context) => BulletinBoardPage(),
         "/data/record": (context) => MobileRecordPage(),
-        "/quest/battle/monster": (context) => BattlePage(),
+        "/quest/battle/monster": (context ) => BattlePage(),
 
       },
     );

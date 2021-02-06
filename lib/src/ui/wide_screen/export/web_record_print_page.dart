@@ -28,11 +28,25 @@ class _WebRecordPrintPageState extends State<WebRecordPrintPagePage> {
     });
   }
 
+  void _showPrintedToast(BuildContext context) {
+    final scaffold = Scaffold.of(context);
+
+    // ignore: deprecated_member_use
+    scaffold.showSnackBar(
+      const SnackBar(
+        content: Text('Document printed successfully'),
+      ),
+    );
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Pdf Printing'),
+      ),
       body: PdfPreview(
-        build: (format) => _generatePdf(format, "terst"),
+        onPrinted: _showPrintedToast,
+        build: (format) => _generatePdf(format, "식권장부"),
       ),
     );
   }

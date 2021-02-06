@@ -22,11 +22,16 @@ class _WebNetworkImageState extends State<WebNetworkImage> {
   }
 
   void _fetchData() async {
-    _bytes = (await http.get(widget.src)).bodyBytes;
-    print(_bytes);
-    if (mounted) {
-      setState(() {});
+    var res =await http.get(widget.src);
+    if(res.statusCode == 200){
+      print(res.body);
     }
+    // _bytes = (await http.get(widget.src)).bodyBytes;
+
+    // print(_bytes);
+    // if (mounted) {
+    //   setState(() {});
+    // }
   }
 
   @override
