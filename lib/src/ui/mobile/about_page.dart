@@ -144,66 +144,74 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                           context: context,
                           builder: (context) => AlertDialog(
                                 title: Text("CHANGELOG"),
-                                content: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ExpansionTile(
-                                      title: Text("1.0.0"),
-                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                content: SizedBox(
+                                  height: MediaQuery.of(context).size.height,
+                                  width: MediaQuery.of(context).size.width,
+                                  child: SingleChildScrollView(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        Text("1. ✨ 파일럿 버전 런칭"),
-                                        Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현"),
-                                        Text("3. ✨ 게시판, 문의하기 추가"),
-                                      ],
-                                    ),
-                                    ExpansionTile(
-                                      title: Text("1.0.1"),
-                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text("1. ✨ 식권 변동 기능 추가"),
-                                        Text("2. ✨ 식권장부 보기 추가"),
-                                        Text("3. ✨ 메뉴 개선"),
-                                      ],
-                                    ),
-                                    ExpansionTile(
-                                      title: Text("1.0.2"),
-                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text("1. ✨ 도시락 주문 기능 추가"),
-                                      ],
-                                    ),
-                                    ExpansionTile(
-                                      title: Text("1.0.3"),
-                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text("1. ✨ 도시락, 일반 구분"),
-                                        Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)"),
-                                        Text("3. ✨ 데스크톱 프린트 기능 추가"),
-                                      ],
-                                    ),
-                                    ExpansionTile(
-                                      title: Text("1.0.4"),
-                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text("1. ✨ 장부에 일반과 도시락이 표기되는 문제를 수정했어요"),
-                                        Text("2. ✨ 방만들기 후 새로고침이 안되던 문제를 수정했어요"),
-                                        Text("3. ✨ 신청하기에 인원수 표기 추가"),
-                                        Text("4. ✨ 팀별 참여신청 구분 기능 추가"),
-                                        Text("5. ✨ 생성되지 않은 방임에도 종료문구 수정"),
-                                      ],
-                                    ),
-                                    ExpansionTile(
-                                      title: Text("1.0.5"),
-                                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text("1. ✨ 프린트화면에 출력물이 보이지 않는 문제를 수정했어요."),
-                                        Text("2. ✨ 참가인원 확인을 위한 인디케이터를 추가했어요."),
-                                        Text("3. ✨ 참가인원을 실시간으로 변동되도록 개선했어요."),
+                                        ExpansionTile(
+                                          title: Text("1.0.0"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 파일럿 버전 런칭"),
+                                            Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현"),
+                                            Text("3. ✨ 게시판, 문의하기 추가"),
+                                          ],
+                                        ),
+                                        ExpansionTile(
+                                          title: Text("1.0.1"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 식권 변동 기능 추가"),
+                                            Text("2. ✨ 식권장부 보기 추가"),
+                                            Text("3. ✨ 메뉴 개선"),
+                                          ],
+                                        ),
+                                        ExpansionTile(
+                                          title: Text("1.0.2"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 도시락 주문 기능 추가"),
+                                          ],
+                                        ),
+                                        ExpansionTile(
+                                          title: Text("1.0.3"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 도시락, 일반 구분"),
+                                            Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)"),
+                                            Text("3. ✨ 데스크톱 프린트 기능 추가"),
+                                          ],
+                                        ),
+                                        ExpansionTile(
+                                          title: Text("1.0.4"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 장부에 일반과 도시락이 표기되는 문제를 수정했어요"),
+                                            Text("2. ✨ 방만들기 후 새로고침이 안되던 문제를 수정했어요"),
+                                            Text("3. ✨ 신청하기에 인원수 표기 추가"),
+                                            Text("4. ✨ 팀별 참여신청 구분 기능 추가"),
+                                            Text("5. ✨ 생성되지 않은 방임에도 종료문구 수정"),
+                                          ],
+                                        ),
+                                        ExpansionTile(
+                                          title: Text("1.0.5"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 프린트화면에 출력물이 보이지 않는 문제를 수정했어요."),
+                                            Text("2. ✨ 참가인원 확인을 위한 인디케이터를 추가했어요."),
+                                            Text("3. ✨ 참가인원을 실시간으로 변동되도록 개선했어요."),
+                                            Text("4. ✨ 동시성 개선."),
+                                            Text("5. ✨ 시스템 안정화"),
 
+                                          ],
+                                        )
                                       ],
-                                    )
-                                  ],
+                                    ),
+                                  ),
                                 ),
                               ));
                     },

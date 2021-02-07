@@ -18,7 +18,7 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
   List<Record> records = [];
   StreamSubscription streamSubscription;
 
-  Future streamLunchList() {
+  void streamLunchList() {
     CollectionReference ref = firestore.collection('lunch');
 
     streamSubscription = ref.onSnapshot.listen((querySnapshot) {

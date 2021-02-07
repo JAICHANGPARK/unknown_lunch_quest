@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lunch_quest/src/db/pref_api.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_lunch_quest/src/routes/arg_quest_date.dart';
+import 'package:flutter_radar_chart/flutter_radar_chart.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:pimp_my_button/pimp_my_button.dart';
 import 'dart:html' as html;
@@ -36,6 +37,8 @@ class _BattlePageState extends State<BattlePage> {
   int _tacoCount = 0;
   int _sushiCount = 0;
   int _broccoliCount = 0;
+  int _hitCount = 0;
+
 
   bool isQuestClear = false;
 
@@ -156,6 +159,7 @@ class _BattlePageState extends State<BattlePage> {
         _tacoCount = documentReference.get("taco");
         _sushiCount = documentReference.get("sushi");
         _broccoliCount = documentReference.get("broccoli");
+        _hitCount = documentReference.get("hit");
         // print(damage);
         if (damage >= totalHP) {
           isQuestClear = true;
@@ -232,7 +236,7 @@ class _BattlePageState extends State<BattlePage> {
         child: isQuestClear
             ? Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Align(
                     alignment: Alignment.topCenter,
@@ -249,16 +253,41 @@ class _BattlePageState extends State<BattlePage> {
                       ], // manually specify the colors to be used
                     ),
                   ),
+                  Text(
+                    "퀘스트 완료",
+                    style: TextStyle(fontFamily: "MaruBuri", fontWeight: FontWeight.bold, fontSize: 32),
+                  ),
                   Center(
                     child: SizedBox(
-                      height: MediaQuery.of(context).size.height / 3,
+                      height: MediaQuery.of(context).size.height / 4,
                       width: MediaQuery.of(context).size.width / 1.5,
                       child: Image.asset("assets/img/urban-line-success.png"),
                     ),
                   ),
-                  Text(
-                    "퀘스트 완료",
-                    style: TextStyle(fontFamily: "MaruBuri", fontWeight: FontWeight.bold, fontSize: 32),
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height / 4,
+                    width: MediaQuery.of(context).size.width / 1.2,
+                    child: Theme.of(context).brightness ==Brightness.light ? RadarChart.light(
+
+                      ticks: [0,10,25,50,75,100],
+                      features: ["그냥때리기","피자", "햄버거", "타코", "스시", "브로콜리"],
+                      data: [
+                        [_hitCount, _pizzaCount,_hamburgerCount,_tacoCount,_sushiCount, _broccoliCount],
+                      ],
+                      reverseAxis: false,
+                      useSides: true,
+
+                    ): RadarChart.dark(
+
+                      ticks: [0,10,25,50,75,100],
+                      features: ["그냥때리기","피자", "햄버거", "타코", "스시", "브로콜리"],
+                      data: [
+                        [_hitCount, _pizzaCount,_hamburgerCount,_tacoCount,_sushiCount, _broccoliCount],
+                      ],
+                      reverseAxis: false,
+                      useSides: true,
+
+                    ),
                   ),
                   MaterialButton(
                     onPressed: () {
@@ -324,7 +353,7 @@ class _BattlePageState extends State<BattlePage> {
                             return InkWell(
                               onTap: () {
                                 controller.forward(from: 0.0);
-                                castVote(1);
+                                castVoteV2("hit", 1);
                               },
                             );
                           },

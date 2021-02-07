@@ -34,7 +34,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   final browser = Browser();
   GlobalKey<ScaffoldState> _drawerKey = GlobalKey();
 
-  StreamSubscription<DocumentSnapshot> _streamSubscription;
+  StreamSubscription<QuerySnapshot> _streamSubscription;
   Firestore firestore = FirebaseInstance.instance.store;
   FancyDrawerController _controller;
   ConfettiController _controllerCenter;
@@ -88,6 +88,75 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     setState(() {});
   }
 
+  void streamLunchCollection() {
+    _streamSubscription = firestore.collection("lunch").onSnapshot.listen((querySnapshot) {
+      if (enterUserList.length > 0) enterUserList.clear();
+      querySnapshot.docChanges().forEach((change) {
+        if (change.type == "added" || change.type == "modified") {
+          // Do something with change.doc
+          // print("change : added or modified");
+          // print(change.doc.id);
+          if (change.doc.id == currentDate) {
+            questUserCount = List.from(change.doc.get("quest_entered")).length;
+            // print("Entered Process : $currentDate");
+            List<String> userList = List<String>.from(change.doc.data()['users']);
+            userList.forEach((element) {
+              String part = "";
+              if (element.toString().split(",").length == 1) {
+                part = "일반";
+              } else {
+                part = element.toString().split(",").last;
+              }
+              String name = element.toString().split(",").first;
+              // print("$name / $part");
+              enterUserList.add(mUser.User(name: name, team: "", part: part));
+            });
+          }
+        }
+        setState(() {});
+        // else if (change.type == "modified") {
+        //   print("change : modified");
+        //   print(change.doc.id);
+        // }
+      });
+
+      // print(">>> documentSnapshot: ${documentSnapshot.get("users")}");
+      // print(">>>> documentSnapshot data: ${documentSnapshot.data()}");
+      // questUserCount = List.from(documentSnapshot.get("quest_entered")).length;
+      // documentSnapshot.get("users").forEach((element) {
+      //   String part = "";
+      //   if (element.toString().split(",").length == 1) {
+      //     part = "일반";
+      //   } else {
+      //     part = element.toString().split(",").last;
+      //   }
+      //   String name = element.toString().split(",").first;
+      //   enterUserList.add(mUser.User(name: name, team: "", part: part));
+      // });
+      // // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
+      // setState(() {});
+    });
+
+    // _streamSubscription = firestore.collection("lunch").doc(date).onSnapshot.listen((documentSnapshot) {
+    //   if (enterUserList.length > 0) enterUserList.clear();
+    //   // print(">>> documentSnapshot: ${documentSnapshot.get("users")}");
+    //   // print(">>>> documentSnapshot data: ${documentSnapshot.data()}");
+    //   questUserCount = List.from(documentSnapshot.get("quest_entered")).length;
+    //   documentSnapshot.get("users").forEach((element) {
+    //     String part = "";
+    //     if (element.toString().split(",").length == 1) {
+    //       part = "일반";
+    //     } else {
+    //       part = element.toString().split(",").last;
+    //     }
+    //     String name = element.toString().split(",").first;
+    //     enterUserList.add(mUser.User(name: name, team: "", part: part));
+    //   });
+    //   // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
+    //   setState(() {});
+    // });
+  }
+
   //TODO: 사용자랑 생성된 날짜에 데이터가 있는지 확인
   Future checkExistRoom(String date) async {
     if (enterUserList.length > 0) enterUserList.clear();
@@ -98,37 +167,37 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     } else {
       existRoom = true;
       isClosed = querySnapshot.data()["isClosed"];
-      print(isClosed);
+      // print(isClosed);
       // print("querySnapshot.data() : ${querySnapshot.data()}");
-      _streamSubscription = firestore.collection("lunch").doc(date).onSnapshot.listen((documentSnapshot) {
-        if (enterUserList.length > 0) enterUserList.clear();
-        // print(">>> documentSnapshot: ${documentSnapshot.get("users")}");
-        // print(">>>> documentSnapshot data: ${documentSnapshot.data()}");
-        questUserCount = List.from(documentSnapshot.get("quest_entered")).length;
-        documentSnapshot.get("users").forEach((element) {
-          String part = "";
-          if (element.toString().split(",").length == 1) {
-            part = "일반";
-          } else {
-            part = element.toString().split(",").last;
-          }
-          String name = element.toString().split(",").first;
-          enterUserList.add(mUser.User(name: name, team: "", part: part));
-        });
-        // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
-        setState(() {});
-      });
-
-      // querySnapshot.data()["users"].forEach((element) {
-      //   String part = "";
-      //   if (element.toString().split(",").length == 1) {
-      //     part = "일반";
-      //   } else {
-      //     part = element.toString().split(",").last;
-      //   }
-      //   String name = element.toString().split(",").first;
-      //   enterUserList.add(mUser.User(name: name, team: "", part: part));
+      // _streamSubscription = firestore.collection("lunch").doc(date).onSnapshot.listen((documentSnapshot) {
+      //   if (enterUserList.length > 0) enterUserList.clear();
+      //   // print(">>> documentSnapshot: ${documentSnapshot.get("users")}");
+      //   // print(">>>> documentSnapshot data: ${documentSnapshot.data()}");
+      //   questUserCount = List.from(documentSnapshot.get("quest_entered")).length;
+      //   documentSnapshot.get("users").forEach((element) {
+      //     String part = "";
+      //     if (element.toString().split(",").length == 1) {
+      //       part = "일반";
+      //     } else {
+      //       part = element.toString().split(",").last;
+      //     }
+      //     String name = element.toString().split(",").first;
+      //     enterUserList.add(mUser.User(name: name, team: "", part: part));
+      //   });
+      //   // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
+      //   setState(() {});
       // });
+      questUserCount = List.from(querySnapshot.data()["quest_entered"] ?? []).length;
+      querySnapshot.data()["users"].forEach((element) {
+        String part = "";
+        if (element.toString().split(",").length == 1) {
+          part = "일반";
+        } else {
+          part = element.toString().split(",").last;
+        }
+        String name = element.toString().split(",").first;
+        enterUserList.add(mUser.User(name: name, team: "", part: part));
+      });
     }
   }
 
@@ -202,6 +271,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     //     userList = value;
     //   });
     // });
+
+    streamLunchCollection();
   }
 
   @override
@@ -669,7 +740,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         ? EnumPart.normal
                                                                         : EnumPart.bento;
                                                                     showDialog(
-                                                                        context: context,
+                                                                        context: _drawerKey.currentContext,
                                                                         builder: (context) {
                                                                           return AlertDialog(
                                                                             content: StatefulBuilder(
@@ -825,7 +896,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                   icon: Icons.delete,
                                                                   onTap: () async {
                                                                     showDialog(
-                                                                        context: context,
+                                                                        context: _drawerKey.currentContext,
                                                                         builder: (context) {
                                                                           return AlertDialog(
                                                                             title: Text("경고"),
@@ -908,7 +979,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                   color: Colors.grey,
                                                 ),
                                                 Text("수령할 시간을 선택하세요."),
-                                                SizedBox(height: 16,),
+                                                SizedBox(
+                                                  height: 16,
+                                                ),
                                                 Expanded(
                                                   flex: 1,
                                                   child: ListView(
@@ -941,7 +1014,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                         label: Text("11:20"),
                                                         selected: orderTime == OrderTime.three,
                                                         onSelected: (b) {
-
                                                           setState(() {
                                                             orderTime = OrderTime.three;
                                                             orderTimeText = "11시 20분";
@@ -1037,7 +1109,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                         return CheckboxListTile(
                                                           title: Text(bentoTempItems[index].name),
                                                           onChanged: (bool value) {
-                                                            print(">>> value : $value");
+                                                            // print(">>> value : $value");
                                                             bentoTempItems[index].isCheck = value;
                                                             setState(() {});
                                                           },
@@ -1266,7 +1338,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           nameList.add("${u.name},${u.part}");
           // nameList.add("${u.name}");
         });
-        print(checkUserList.length);
+        // print(checkUserList.length);
         await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
 
         setState(() {
@@ -1291,7 +1363,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           nameList.add("${u.name},${u.part}");
           // nameList.add("${u.name}");
         });
-        print(checkUserList.length);
+        // print(checkUserList.length);
         await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
 
         setState(() {
@@ -1338,9 +1410,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         // print(querySnapshot);
         if (querySnapshot == null || !querySnapshot.exists) {
           // Document with id == docId doesn't exist.
-          print("Not exist");
+          // print("Not exist");
           showDialog(
-              context: context,
+              context: _drawerKey.currentContext,
               builder: (context) => AlertDialog(
                     content: Text("생성된 방이 없습니다."),
                     actions: [
@@ -1362,6 +1434,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               "sushi": 0,
                               "taco": 0,
                               "broccoli": 0,
+                              "hit": 0
                             });
 
                             Fluttertoast.showToast(msg: "방만들기 성공", webPosition: "center");
@@ -1492,14 +1565,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         ));
                               } else {
                                 if (userList.isNotEmpty) userList.clear();
-                                print("allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
+                                // print("allUserList.length: ${FirebaseInstance.instance.allUserList.length}");
 
                                 userList.addAll(FirebaseInstance.instance.allUserList);
-                                print("userList size: ${userList.length}");
+                                // print("userList size: ${userList.length}");
                                 if (userList.length > 0) {
                                   //TODO: 전체 사용자를 복사함
                                   List<mUser.User> leftUserItems = userList;
-                                  print("enterUserList size: ${enterUserList.length}");
+                                  // print("enterUserList size: ${enterUserList.length}");
                                   //TODO: 방에 있는 인원(이미 신청된 인원의 목록을 돌려 전체 사용자에서 제거
                                   enterUserList.forEach((element) {
                                     leftUserItems.removeWhere((v) => v.name == element.name);
@@ -1618,7 +1691,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where(
@@ -1726,7 +1799,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "기타")
@@ -1806,7 +1879,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "대외협력팀")
@@ -1886,7 +1959,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where(
@@ -1967,7 +2040,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where(
@@ -2048,7 +2121,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "생산총괄팀")
@@ -2128,7 +2201,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "영업팀")
@@ -2208,7 +2281,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "인사총무팀")
@@ -2288,7 +2361,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "재무회계팀")
@@ -2368,7 +2441,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                                         .toList()[index]
                                                                         .team),
                                                                     onChanged: (bool value) {
-                                                                      print(value);
+                                                                      // print(value);
                                                                       setState(() {
                                                                         leftUserItems
                                                                             .where((element) => element.team == "홍보마케팅")
@@ -2401,7 +2474,58 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     message: '신청하기',
                                                     child: GestureDetector(
                                                       onTap: () async {
-                                                        await onRegistrationUser(leftUserItems);
+                                                        //TODO: 이미 신청되었는데 다시 신청하는 경우 막기 (중복검사)
+                                                        //TODO: 체크된 인원 리스트 확인
+                                                        List<mUser.User> checkUserList = leftUserItems
+                                                            .where((element) => element.isCheck == true)
+                                                            .toList();
+                                                        //TODO: enter된 인원 리스트 확인
+                                                        //TODO: enter된 리스트에 체크된 인원이 있다면 리턴.
+                                                        List<mUser.User> tmp = [];
+                                                        for (int i = 0; i < enterUserList.length; i++) {
+                                                          for (int j = 0; j < checkUserList.length; j++) {
+                                                            if (enterUserList[i].name == checkUserList[j].name) {
+                                                              tmp.add(enterUserList[i]);
+                                                            }
+                                                          }
+                                                        }
+                                                        //TODO: 등록하기
+                                                        // print(tmp.length);
+                                                        if (tmp.length > 0) {
+                                                          showDialog(
+                                                              context: _drawerKey.currentContext,
+                                                              builder: (context) {
+                                                                return AlertDialog(
+                                                                  title: Text("오류"),
+                                                                  content: Column(
+                                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                                    mainAxisSize: MainAxisSize.min,
+                                                                    children: [
+                                                                      Text("신청하는 사이에 참가한 인원이 있어요!"),
+                                                                      Text("확인 후 다시 시도해주세요."),
+                                                                      ...tmp
+                                                                          .map((e) => ListTile(
+                                                                                title: Text(e.name),
+                                                                              ))
+                                                                          .toList()
+                                                                    ],
+                                                                  ),
+                                                                  actions: [
+                                                                    ElevatedButton(
+                                                                        onPressed: () {
+                                                                          Navigator.of(context).pop();
+                                                                          Navigator.of(context).pop();
+                                                                        },
+                                                                        child: Text("확인"))
+                                                                  ],
+                                                                );
+                                                              });
+                                                          return;
+                                                        } else {
+                                                          await onRegistrationUser(leftUserItems);
+                                                        }
+
+                                                        //
                                                       },
                                                       child: Container(
                                                         height: 72,
@@ -2489,6 +2613,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           ),
           MaterialButton(
             onPressed: () {
+              // print(enterUserList);
               showDialog(
                   context: _drawerKey.currentContext,
                   builder: (context) => AlertDialog(
@@ -2529,11 +2654,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     Expanded(
                                                       child: LinearPercentIndicator(
                                                         lineHeight: 6.0,
-                                                        percent: (enterUserList
-                                                                .where((element) => element.part == "도시락")
-                                                                .toList()
-                                                                .length /
-                                                            enterUserList.length),
+                                                        percent: enterUserList.length > 0
+                                                            ? (enterUserList
+                                                                    .where((element) => element.part == "도시락")
+                                                                    .toList()
+                                                                    .length /
+                                                                enterUserList.length)
+                                                            : 0.0,
                                                         progressColor: Theme.of(context).accentColor,
                                                       ),
                                                     ),
@@ -2574,11 +2701,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     Expanded(
                                                       child: LinearPercentIndicator(
                                                         lineHeight: 6.0,
-                                                        percent: (enterUserList
-                                                                .where((element) => element.part == "일반")
-                                                                .toList()
-                                                                .length /
-                                                            enterUserList.length),
+                                                        percent: enterUserList.length > 0
+                                                            ? (enterUserList
+                                                                    .where((element) => element.part == "일반")
+                                                                    .toList()
+                                                                    .length /
+                                                                enterUserList.length)
+                                                            : 0.0,
                                                         progressColor: Colors.red,
                                                       ),
                                                     ),
@@ -2610,7 +2739,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 return ListTile(
                                                   onTap: () {
                                                     showDialog(
-                                                        context: context,
+                                                        context: _drawerKey.currentContext,
                                                         builder: (context) => AlertDialog(
                                                               title: Text("Don't panic"),
                                                               content: Column(
@@ -2651,7 +2780,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 return ListTile(
                                                   onTap: () {
                                                     showDialog(
-                                                        context: context,
+                                                        context: _drawerKey.currentContext,
                                                         builder: (context) => AlertDialog(
                                                               title: Text("Don't panic"),
                                                               content: Column(
