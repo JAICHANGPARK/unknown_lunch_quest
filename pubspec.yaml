@@ -43,6 +43,7 @@ dependencies:
   pimp_my_button: ^1.0.0
 
   shared_preferences: any
+  flutter_radar_chart: ^0.1.6
 
 dev_dependencies:
   flutter_test:
