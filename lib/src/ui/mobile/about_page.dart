@@ -25,9 +25,11 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    TextStyle textStyle = TextStyle( fontFamily: "NanumBarunpenR");
     return Scaffold(
       appBar: AppBar(
         title: Text("About"),
+        centerTitle: true,
       ),
       body: Stack(
         children: [
@@ -112,23 +114,35 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                         }
                       },
                       child: ScaleTransition(scale: _animation, child: Image.asset("assets/img/the_last_supper.jpg"))),
-                  ListTile(
-                    title: Text("개발"),
-                    subtitle: Text("박제창(로봇연구개발팀)"),
-                  ),
+                  SizedBox(height: 16,),
                   Divider(
                     height: 8,
                   ),
                   ListTile(
-                    title: Text("연락처"),
-                    subtitle: Text("jaichang@angel-robotics.com"),
+                    title: Text("개발"),
+                    trailing: Text("박제창 (로봇연구개발팀)"),
                   ),
+
+                  ListTile(
+                    title: Text("연락/문의"),
+                    subtitle: Text("개선 및 오류사항 "),
+                    trailing: Text("jaichang@angel-robotics.com"),
+                  ),
+                  ListTile(
+                    title: Text("Clubhouse"),
+                    subtitle: Text("클럽하우스"),
+                    trailing: Text("@iamdreamwalker"),
+                  ),
+                  Divider(
+                    height: 8,
+                  ),
+                  SizedBox(height: 16,),
                   Divider(
                     height: 8,
                   ),
                   ListTile(
                     title: Text("라이선스"),
-                    subtitle: Text("오픈소스 라이선스"),
+                    trailing: Text("오픈소스 라이선스"),
                     onTap: () {
                       showLicensePage(context: context);
                     },
@@ -138,7 +152,7 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                   ),
                   ListTile(
                     title: Text("Changelog"),
-                    subtitle: Text("버전기록"),
+                    trailing: Text("버전기록"),
                     onTap: () {
                       showDialog(
                           context: context,
@@ -156,57 +170,65 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                                           title: Text("1.0.0"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text("1. ✨ 파일럿 버전 런칭"),
-                                            Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현"),
-                                            Text("3. ✨ 게시판, 문의하기 추가"),
+                                            Text("1. ✨ 파일럿 버전 런칭", style: textStyle,),
+                                            Text("2. ✨ 신청하기, 삭제하기, 화면 UI 구현", style: textStyle,),
+                                            Text("3. ✨ 게시판, 문의하기 추가", style: textStyle,),
                                           ],
                                         ),
                                         ExpansionTile(
                                           title: Text("1.0.1"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text("1. ✨ 식권 변동 기능 추가"),
-                                            Text("2. ✨ 식권장부 보기 추가"),
-                                            Text("3. ✨ 메뉴 개선"),
+                                            Text("1. ✨ 식권 변동 기능 추가", style: textStyle,),
+                                            Text("2. ✨ 식권장부 보기 추가", style: textStyle,),
+                                            Text("3. ✨ 메뉴 개선", style: textStyle,),
                                           ],
                                         ),
                                         ExpansionTile(
                                           title: Text("1.0.2"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text("1. ✨ 도시락 주문 기능 추가"),
+                                            Text("1. ✨ 도시락 주문 기능 추가", style: textStyle,),
                                           ],
                                         ),
                                         ExpansionTile(
                                           title: Text("1.0.3"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text("1. ✨ 도시락, 일반 구분"),
-                                            Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)"),
-                                            Text("3. ✨ 데스크톱 프린트 기능 추가"),
+                                            Text("1. ✨ 도시락, 일반 구분", style: textStyle,),
+                                            Text("2. ✨ 도시락 주문 번호 추가(문자, 전화하기)", style: textStyle,),
+                                            Text("3. ✨ 데스크톱 프린트 기능 추가", style: textStyle,),
                                           ],
                                         ),
                                         ExpansionTile(
                                           title: Text("1.0.4"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text("1. ✨ 장부에 일반과 도시락이 표기되는 문제를 수정했어요"),
-                                            Text("2. ✨ 방만들기 후 새로고침이 안되던 문제를 수정했어요"),
-                                            Text("3. ✨ 신청하기에 인원수 표기 추가"),
-                                            Text("4. ✨ 팀별 참여신청 구분 기능 추가"),
-                                            Text("5. ✨ 생성되지 않은 방임에도 종료문구 수정"),
+                                            Text("1. ✨ 장부에 일반과 도시락이 표기되는 문제를 수정했어요", style: textStyle,),
+                                            Text("2. ✨ 방만들기 후 새로고침이 안되던 문제를 수정했어요", style: textStyle,),
+                                            Text("3. ✨ 신청하기에 인원수 표기 추가", style: textStyle,),
+                                            Text("4. ✨ 팀별 참여신청 구분 기능 추가", style: textStyle,),
+                                            Text("5. ✨ 생성되지 않은 방임에도 종료문구 수정", style: textStyle,),
                                           ],
                                         ),
                                         ExpansionTile(
                                           title: Text("1.0.5"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text("1. ✨ 프린트화면에 출력물이 보이지 않는 문제를 수정했어요."),
-                                            Text("2. ✨ 참가인원 확인을 위한 인디케이터를 추가했어요."),
-                                            Text("3. ✨ 참가인원을 실시간으로 변동되도록 개선했어요."),
-                                            Text("4. ✨ 동시성 개선."),
-                                            Text("5. ✨ 시스템 안정화"),
+                                            Text("1. ✨ 프린트화면에 출력물이 보이지 않는 문제를 수정했어요.", style: textStyle,),
+                                            Text("2. ✨ 참가인원 확인을 위한 인디케이터를 추가했어요.", style: textStyle,),
+                                            Text("3. ✨ 참가인원을 실시간으로 변동되도록 개선했어요.", style: textStyle,),
+                                            Text("4. ✨ 동시성 개선.", style: textStyle,),
+                                            Text("5. ✨ 시스템 안정화", style: textStyle,),
 
+                                          ],
+                                        ),
+                                        ExpansionTile(
+                                          title: Text("1.0.6"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text("1. ✨ 관리자 로그인 추가", style: textStyle,),
+                                            Text("2. ✨ 도시락 주문 개선 ", style: textStyle,),
                                           ],
                                         )
                                       ],
@@ -215,7 +237,11 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                                 ),
                               ));
                     },
-                  )
+                  ),
+                  Divider(
+                    height: 8,
+                  ),
+
                 ],
               )),
         ],

@@ -39,7 +39,6 @@ class _BattlePageState extends State<BattlePage> {
   int _broccoliCount = 0;
   int _hitCount = 0;
 
-
   bool isQuestClear = false;
 
   ConfettiController _controllerCenter;
@@ -185,12 +184,12 @@ class _BattlePageState extends State<BattlePage> {
         // final data = snapshot.data();
         // final count = data['damage'] as num;
         ref.update(data: {'damage': damage + hit});
-
       } else {
         print('damage doesnt exist');
       }
     });
   }
+
   void castVoteV2(String weapon, int hit) {
     _tabCounter++;
     final ref = FirebaseInstance.instance.fireStore.doc('lunch/${inputDate}');
@@ -200,7 +199,7 @@ class _BattlePageState extends State<BattlePage> {
         // final data = snapshot.data();
         // final count = data['weapon'] as num;
         int oldWeapon = 0;
-        switch(weapon){
+        switch (weapon) {
           case "pizza":
             oldWeapon = _pizzaCount;
             break;
@@ -217,7 +216,7 @@ class _BattlePageState extends State<BattlePage> {
             oldWeapon = _broccoliCount;
             break;
         }
-        ref.update(data: {'damage': damage + hit , weapon: oldWeapon + 1});
+        ref.update(data: {'damage': damage + hit, weapon: oldWeapon + 1});
       } else {
         print('damage doesnt exist');
       }
@@ -234,291 +233,297 @@ class _BattlePageState extends State<BattlePage> {
       ),
       body: SafeArea(
         child: isQuestClear
-            ? Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.topCenter,
-                    child: ConfettiWidget(
-                      confettiController: _controllerCenter,
-                      blastDirectionality: BlastDirectionality.explosive, // don't specify a direction, blast randomly
-                      shouldLoop: true, // start again as soon as the animation is finished
-                      colors: const [
-                        Colors.green,
-                        Colors.blue,
-                        Colors.pink,
-                        Colors.orange,
-                        Colors.purple
-                      ], // manually specify the colors to be used
-                    ),
-                  ),
-                  Text(
-                    "퀘스트 완료",
-                    style: TextStyle(fontFamily: "MaruBuri", fontWeight: FontWeight.bold, fontSize: 32),
-                  ),
-                  Center(
-                    child: SizedBox(
-                      height: MediaQuery.of(context).size.height / 4,
-                      width: MediaQuery.of(context).size.width / 1.5,
-                      child: Image.asset("assets/img/urban-line-success.png"),
-                    ),
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 4,
-                    width: MediaQuery.of(context).size.width / 1.2,
-                    child: Theme.of(context).brightness ==Brightness.light ? RadarChart.light(
-
-                      ticks: [0,10,25,50,75,100],
-                      features: ["그냥때리기","피자", "햄버거", "타코", "스시", "브로콜리"],
-                      data: [
-                        [_hitCount, _pizzaCount,_hamburgerCount,_tacoCount,_sushiCount, _broccoliCount],
-                      ],
-                      reverseAxis: false,
-                      useSides: true,
-
-                    ): RadarChart.dark(
-
-                      ticks: [0,10,25,50,75,100],
-                      features: ["그냥때리기","피자", "햄버거", "타코", "스시", "브로콜리"],
-                      data: [
-                        [_hitCount, _pizzaCount,_hamburgerCount,_tacoCount,_sushiCount, _broccoliCount],
-                      ],
-                      reverseAxis: false,
-                      useSides: true,
-
-                    ),
-                  ),
-                  MaterialButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    color: Colors.black,
-                    height: 48,
-                    minWidth: MediaQuery.of(context).size.width / 1.2,
-                    child: Text(
-                      "나가기",
-                      style: TextStyle(color: Colors.white, fontFamily: "MaruBuri"),
-                    ),
-                  ),
-                ],
-              )
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // SizedBox(
-                  //     width: MediaQuery.of(context).size.width,
-                  //     child: LinearProgressIndicator(
-                  //       minHeight: 16,
-                  //     )),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    child: Text("몬스터에게 음식을 먹이세요"),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                    child: LinearPercentIndicator(
-                      center: Text(
-                        "${(totalHP - damage)}/$totalHP",
-                        style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 24),
+            ? SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(height: 24,),
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: ConfettiWidget(
+                        confettiController: _controllerCenter,
+                        blastDirectionality: BlastDirectionality.explosive, // don't specify a direction, blast randomly
+                        shouldLoop: true, // start again as soon as the animation is finished
+                        colors: const [
+                          Colors.green,
+                          Colors.blue,
+                          Colors.pink,
+                          Colors.orange,
+                          Colors.purple
+                        ], // manually specify the colors to be used
                       ),
-                      lineHeight: 32.0,
-                      percent: ((totalHP - damage) / totalHP),
-                      progressColor: Colors.red,
                     ),
-                  ),
-                  SizedBox(
-                    height: MediaQuery.of(context).size.height / 3,
-                    width: MediaQuery.of(context).size.width / 1.4,
-                    child: Stack(
-                      children: [
-                        Positioned(
-                          left: 0,
-                          right: 0,
-                          bottom: 0,
-                          top: 0,
-                          child: Card(
-                            elevation: 8,
-                            child: Padding(
-                              padding: const EdgeInsets.all(16.0),
-                              child: Image.asset(
-                                "assets/img/animation_300_kkt435kx.gif",
+                    Text(
+                      "퀘스트 완료",
+                      style: TextStyle(fontFamily: "MaruBuri", fontWeight: FontWeight.bold, fontSize: 32),
+                    ),
+                    Center(
+                      child: SizedBox(
+                        height: MediaQuery.of(context).size.height / 4,
+                        width: MediaQuery.of(context).size.width / 1.5,
+                        child: Image.asset("assets/img/urban-line-success.png"),
+                      ),
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height / 4,
+                      width: MediaQuery.of(context).size.width / 1.2,
+                      child: Theme.of(context).brightness == Brightness.light
+                          ? RadarChart.light(
+                        ticks: [0, 25, 50, 75, 100, 125, 150, 175, 200],
+                              features: ["그냥때리기", "피자", "햄버거", "타코", "스시", "브로콜리"],
+                              data: [
+                                [_hitCount, _pizzaCount, _hamburgerCount, _tacoCount, _sushiCount, _broccoliCount],
+                              ],
+                              reverseAxis: false,
+                              useSides: true,
+                            )
+                          : RadarChart.dark(
+                              ticks: [0, 25, 50, 75, 100, 125, 150, 175, 200],
+                              features: ["그냥때리기", "피자", "햄버거", "타코", "스시", "브로콜리"],
+                              data: [
+                                [_hitCount, _pizzaCount, _hamburgerCount, _tacoCount, _sushiCount, _broccoliCount],
+                              ],
+                              reverseAxis: false,
+                              useSides: true,
+                            ),
+                    ),
+                    MaterialButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      color: Colors.black,
+                      height: 48,
+                      minWidth: MediaQuery.of(context).size.width / 1.2,
+                      child: Text(
+                        "나가기",
+                        style: TextStyle(color: Colors.white, fontFamily: "MaruBuri"),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            : SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // SizedBox(
+                    //     width: MediaQuery.of(context).size.width,
+                    //     child: LinearProgressIndicator(
+                    //       minHeight: 16,
+                    //     )),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      child: Text("몬스터에게 음식을 먹이세요"),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                      child: LinearPercentIndicator(
+                        center: Text(
+                          "${(totalHP - damage)}/$totalHP",
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 24),
+                        ),
+                        lineHeight: 32.0,
+                        percent: ((totalHP - damage) / totalHP),
+                        progressColor: Colors.red,
+                      ),
+                    ),
+                    SizedBox(
+                      height: MediaQuery.of(context).size.height / 3,
+                      width: MediaQuery.of(context).size.width / 1.4,
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            top: 0,
+                            child: Card(
+                              elevation: 8,
+                              child: Padding(
+                                padding: const EdgeInsets.all(16.0),
+                                child: Image.asset(
+                                  "assets/img/animation_300_kkt435kx.gif",
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        PimpedButton(
-                          particle: DemoParticle(),
-                          pimpedWidgetBuilder: (context, controller) {
-                            return InkWell(
-                              onTap: () {
-                                controller.forward(from: 0.0);
-                                castVoteV2("hit", 1);
-                              },
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  SizedBox(
-                    height: 24,
-                  ),
-                  SizedBox(
-                    height: 72,
-                    width: MediaQuery.of(context).size.width / 1.2,
-                    child: Card(
-                        child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Row(
-                        children: [
-                          Text(
-                            "현재 참가인원",
-                            style: TextStyle(fontFamily: "MaruBuri"),
-                          ),
-                          Spacer(),
-                          Text(
-                            "${questEnteredUsers.length}명",
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: "MaruBuri"),
+                          PimpedButton(
+                            particle: DemoParticle(),
+                            pimpedWidgetBuilder: (context, controller) {
+                              return InkWell(
+                                onTap: () {
+                                  controller.forward(from: 0.0);
+                                  castVoteV2("hit", 1);
+                                },
+                              );
+                            },
                           ),
                         ],
                       ),
-                    )),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        PimpedButton(
-                          particle: DemoParticle(),
-                          pimpedWidgetBuilder: (context, controller) {
-                            return InkWell(
-                              onTap: () {
-                                // castVote(2);
-                                castVoteV2("pizza", 2);
-                                controller.forward(from: 0.0);
-                              },
-                              child: CircleAvatar(
-                                radius: 36,
-                                backgroundColor: Colors.grey[300],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Image.asset("assets/img/pizza_1f355.png"),
-                                ),
-                              ),
-                            );
-                          },
+                    ),
+                    SizedBox(
+                      height: 24,
+                    ),
+                    SizedBox(
+                      height: 72,
+                      width: MediaQuery.of(context).size.width / 1.2,
+                      child: Card(
+                          child: Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Row(
+                          children: [
+                            Text(
+                              "현재 참가인원",
+                              style: TextStyle(fontFamily: "MaruBuri"),
+                            ),
+                            Spacer(),
+                            Text(
+                              "${questEnteredUsers.length}명",
+                              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, fontFamily: "MaruBuri"),
+                            ),
+                          ],
                         ),
-                        PimpedButton(
-                          particle: DemoParticle(),
-                          pimpedWidgetBuilder: (context, controller) {
-                            return InkWell(
-                              onTap: () {
-                                // castVote(3);
-                                castVoteV2("hamburger", 3);
-                                controller.forward(from: 0.0);
-                              },
-                              child: CircleAvatar(
-                                radius: 36,
-                                backgroundColor: Colors.grey[300],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Image.asset("assets/img/hamburger_1f354.png"),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        PimpedButton(
-                          particle: DemoParticle(),
-                          pimpedWidgetBuilder: (context, controller) {
-                            return InkWell(
-                              onTap: () {
-                                // castVote(2);
-                                castVoteV2("taco", 3);
-                                controller.forward(from: 0.0);
-                              },
-                              child: CircleAvatar(
-                                radius: 36,
-                                backgroundColor: Colors.grey[300],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Image.asset("assets/img/taco_1f32e.png"),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                        PimpedButton(
-                          particle: DemoParticle(),
-                          pimpedWidgetBuilder: (context, controller) {
-                            return InkWell(
-                              onTap: () {
-                                // castVote(5);
-                                castVoteV2("sushi", 5);
-                                controller.forward(from: 0.0);
-                              },
-                              child: CircleAvatar(
-                                radius: 36,
-                                backgroundColor: Colors.grey[300],
-                                child: Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Image.asset("assets/img/sushi_1f363.png"),
-                                ),
-                                // child: Text(
-                                //   '4',
-                                //   style: TextStyle(fontSize: 24),
-                                // ),
-                              ),
-                            );
-                          },
-                        ),
-                        _tabCounter > 10
-                            ? PimpedButton(
-                                particle: DemoParticle(),
-                                pimpedWidgetBuilder: (context, controller) {
-                                  return InkWell(
-                                    onTap: () {
-                                      // castVote(20);
-                                      castVoteV2("broccoli", 20);
-                                      controller.forward(from: 0.0);
-                                      _tabCounter = 0;
-                                    },
-                                    child: CircleAvatar(
-                                      radius: 36,
-                                      backgroundColor: Colors.yellow[300],
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(12.0),
-                                        child: Image.asset("assets/img/broccoli_1f966.png"),
-                                      ),
-                                    ),
-                                  );
+                      )),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 24),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          PimpedButton(
+                            particle: DemoParticle(),
+                            pimpedWidgetBuilder: (context, controller) {
+                              return InkWell(
+                                onTap: () {
+                                  // castVote(2);
+                                  castVoteV2("pizza", 2);
+                                  controller.forward(from: 0.0);
                                 },
-                              )
-                            : Container(),
-                      ],
+                                child: CircleAvatar(
+                                  radius: 36,
+                                  backgroundColor: Colors.grey[300],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Image.asset("assets/img/pizza_1f355.png"),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          PimpedButton(
+                            particle: DemoParticle(),
+                            pimpedWidgetBuilder: (context, controller) {
+                              return InkWell(
+                                onTap: () {
+                                  // castVote(3);
+                                  castVoteV2("hamburger", 3);
+                                  controller.forward(from: 0.0);
+                                },
+                                child: CircleAvatar(
+                                  radius: 36,
+                                  backgroundColor: Colors.grey[300],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Image.asset("assets/img/hamburger_1f354.png"),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          PimpedButton(
+                            particle: DemoParticle(),
+                            pimpedWidgetBuilder: (context, controller) {
+                              return InkWell(
+                                onTap: () {
+                                  // castVote(2);
+                                  castVoteV2("taco", 3);
+                                  controller.forward(from: 0.0);
+                                },
+                                child: CircleAvatar(
+                                  radius: 36,
+                                  backgroundColor: Colors.grey[300],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Image.asset("assets/img/taco_1f32e.png"),
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                          PimpedButton(
+                            particle: DemoParticle(),
+                            pimpedWidgetBuilder: (context, controller) {
+                              return InkWell(
+                                onTap: () {
+                                  // castVote(5);
+                                  castVoteV2("sushi", 5);
+                                  controller.forward(from: 0.0);
+                                },
+                                child: CircleAvatar(
+                                  radius: 36,
+                                  backgroundColor: Colors.grey[300],
+                                  child: Padding(
+                                    padding: const EdgeInsets.all(12.0),
+                                    child: Image.asset("assets/img/sushi_1f363.png"),
+                                  ),
+                                  // child: Text(
+                                  //   '4',
+                                  //   style: TextStyle(fontSize: 24),
+                                  // ),
+                                ),
+                              );
+                            },
+                          ),
+                          _tabCounter > 10
+                              ? PimpedButton(
+                                  particle: DemoParticle(),
+                                  pimpedWidgetBuilder: (context, controller) {
+                                    return InkWell(
+                                      onTap: () {
+                                        // castVote(20);
+                                        castVoteV2("broccoli", 20);
+                                        controller.forward(from: 0.0);
+                                        _tabCounter = 0;
+                                      },
+                                      child: CircleAvatar(
+                                        radius: 36,
+                                        backgroundColor: Colors.yellow[300],
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(12.0),
+                                          child: Image.asset("assets/img/broccoli_1f966.png"),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : Container(),
+                        ],
+                      ),
                     ),
-                  ),
-                  MaterialButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    color: Colors.black,
-                    height: 48,
-                    minWidth: MediaQuery.of(context).size.width / 1.2,
-                    child: Text(
-                      "나가기",
-                      style: TextStyle(color: Colors.white),
+                    SizedBox(
+                      height: 24,
                     ),
-                  ),
-                  Spacer(),
-                  // SizedBox(
-                  //     width: MediaQuery.of(context).size.width,
-                  //     child: LinearProgressIndicator(
-                  //       minHeight: 16,
-                  //     )),
-                ],
+                    MaterialButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      color: Colors.black,
+                      height: 48,
+                      minWidth: MediaQuery.of(context).size.width / 1.2,
+                      child: Text(
+                        "나가기",
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+
+                    // SizedBox(
+                    //     width: MediaQuery.of(context).size.width,
+                    //     child: LinearProgressIndicator(
+                    //       minHeight: 16,
+                    //     )),
+                  ],
+                ),
               ),
       ),
     );

@@ -51,13 +51,14 @@ class _BitCoinPageState extends State<BitCoinPage> {
                   icon: Icon(Icons.local_atm_outlined),
                   text: "Price",
                 ),
-                Tab(
-                  icon: Icon(Icons.notes_rounded),
-                  text: "Coin",
-                ),
+
                 Tab(
                   icon: Icon(Icons.monetization_on_outlined),
                   text: "ExRate",
+                ),
+                Tab(
+                  icon: Icon(Icons.notes_rounded),
+                  text: "Coin",
                 ),
               ],
             ),
@@ -96,7 +97,7 @@ class _BitCoinPageState extends State<BitCoinPage> {
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [CircularProgressIndicator(), Text("기다리는중...")],
                       ),
-                Container(),
+
                 ethItems.length > 0  ? Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: ListView.separated(itemBuilder: (context, index){
@@ -112,7 +113,12 @@ class _BitCoinPageState extends State<BitCoinPage> {
                   }, itemCount: ethItems.length),
                 ) : Center(
                   child: Text("데이터 없음."),
-                )
+                ),
+                Container(
+                  child: Center(
+                    child: Text("Now in development"),
+                  ),
+                ),
               ],
             ),
           ),

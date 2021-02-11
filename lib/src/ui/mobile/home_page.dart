@@ -61,7 +61,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int questUserCount = 0;
 
   Future refreshEnterUserList() async {
+    if(enterUserList.length > 0) enterUserList.clear();
     DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
+
     querySnapshot.data()["users"].forEach((element) {
       String part = "";
       if (element.toString().split(",").length == 1) {
@@ -157,6 +159,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     // });
   }
 
+  bool isInit = false;
+
   //TODO: 사용자랑 생성된 날짜에 데이터가 있는지 확인
   Future checkExistRoom(String date) async {
     if (enterUserList.length > 0) enterUserList.clear();
@@ -187,17 +191,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       //   // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
       //   setState(() {});
       // });
-      questUserCount = List.from(querySnapshot.data()["quest_entered"] ?? []).length;
-      querySnapshot.data()["users"].forEach((element) {
-        String part = "";
-        if (element.toString().split(",").length == 1) {
-          part = "일반";
-        } else {
-          part = element.toString().split(",").last;
-        }
-        String name = element.toString().split(",").first;
-        enterUserList.add(mUser.User(name: name, team: "", part: part));
-      });
+      if(isInit){
+        questUserCount = List.from(querySnapshot.data()["quest_entered"] ?? []).length;
+        querySnapshot.data()["users"].forEach((element) {
+          String part = "";
+          if (element.toString().split(",").length == 1) {
+            part = "일반";
+          } else {
+            part = element.toString().split(",").last;
+          }
+          String name = element.toString().split(",").first;
+          enterUserList.add(mUser.User(name: name, team: "", part: part));
+        });
+      }
+      isInit = true;
+
     }
   }
 
@@ -377,86 +385,53 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     children: [
                       Expanded(
                         child: Card(
-                          child: Padding(
-                              padding: const EdgeInsets.all(12.0),
-                              child: Row(
-                                children: [
-                                  Text(
-                                    "현재시각",
-                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                                  ),
-                                  Spacer(),
-                                  DigitalClock(
-                                    areaDecoration: BoxDecoration(color: Colors.transparent),
-                                    areaAligment: AlignmentDirectional.centerEnd,
-                                    hourMinuteDigitDecoration: BoxDecoration(color: Colors.transparent),
-                                    hourMinuteDigitTextStyle: TextStyle(fontSize: 16),
-                                    secondDigitTextStyle: TextStyle(fontSize: 14),
-                                  )
-                                ],
-                              )),
+                          child: Center(
+                            child: Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Row(
+                                  children: [
+                                    Text(
+                                      "현재시각",
+                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
+                                        fontFamily: "NanumBarunpenR",
+                                      ),
+                                    ),
+                                    Spacer(),
+                                    DigitalClock(
+                                      areaDecoration: BoxDecoration(color: Colors.transparent),
+                                      areaAligment: AlignmentDirectional.centerEnd,
+                                      hourMinuteDigitDecoration: BoxDecoration(color: Colors.transparent),
+                                      hourMinuteDigitTextStyle: TextStyle(fontSize: 14),
+                                      secondDigitTextStyle: TextStyle(fontSize: 14),
+                                    )
+                                  ],
+                                )),
+                          ),
                         ),
                       ),
                       SizedBox(width: 4),
                       Expanded(
                         child: Card(
                           child: Padding(
-                            padding: const EdgeInsets.all(12.0),
+                            padding: const EdgeInsets.all(8.0),
                             child: totalTicket != null
                                 ? GestureDetector(
                                     onTap: () {
-                                      TextEditingController tmp = TextEditingController();
-                                      showDialog(
-                                          context: _drawerKey.currentContext,
-                                          builder: (context) => AlertDialog(
-                                                title: Text("식권 수정하기"),
-                                                content: Column(
-                                                  mainAxisSize: MainAxisSize.min,
-                                                  children: [
-                                                    Text("식권을 추가 구매했을 때 사용해주세요."),
-                                                    TextField(
-                                                      controller: tmp,
-                                                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                                                    ),
-                                                  ],
-                                                ),
-                                                actions: [
-                                                  ElevatedButton(
-                                                    onPressed: () async {
-                                                      if (tmp.text.length > 0) {
-                                                        int v = int.parse(tmp.text);
-                                                        await onSetTotalTicketCount(v);
-                                                        totalTicket = await fetchTotalTicketCount();
-                                                        Fluttertoast.showToast(msg: "처리 완료");
-                                                        setState(() {});
 
-                                                        Navigator.of(context).pop();
-                                                      } else {
-                                                        Fluttertoast.showToast(msg: "추가할 식권수를 입력해주세요");
-                                                      }
-                                                    },
-                                                    child: Text("추가하기"),
-                                                  ),
-                                                  ElevatedButton(
-                                                    onPressed: () {
-                                                      Navigator.of(context).pop();
-                                                    },
-                                                    child: Text("확인"),
-                                                  ),
-                                                ],
-                                              ));
                                     },
                                     child: Row(
                                       children: [
                                         Text(
                                           "총 식권수",
-                                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
+                                            fontFamily: "NanumBarunpenR",),
                                         ),
                                         Spacer(),
                                         Text(
                                           "$totalTicket 장",
                                           style: TextStyle(
                                             fontSize: 16,
+                                            fontFamily: "NanumBarunpenR",
                                           ),
                                         ),
                                       ],
@@ -507,7 +482,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ),
                   //TODO: 참가인원 뷰
                   SizedBox(
-                      height: MediaQuery.of(context).size.height / 1.15,
+                      height: (isClosed || isWeekend || !existRoom || enterUserList.length  == 0)? MediaQuery.of(context).size.height / 1.6 : MediaQuery.of(context).size.height,
                       width: MediaQuery.of(context).size.width,
                       child: !isWeekend
                           ? existRoom
@@ -550,6 +525,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                         Expanded(
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                             children: [
                                                               Expanded(
                                                                   child: Padding(
@@ -587,6 +563,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                         Expanded(
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                             children: [
                                                               Expanded(child: Text("일반 파티")),
                                                               Expanded(
@@ -620,6 +597,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                         Expanded(
                                                           child: Column(
                                                             crossAxisAlignment: CrossAxisAlignment.start,
+                                                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                                             children: [
                                                               Expanded(child: Text("미참가")),
                                                               Expanded(
@@ -673,18 +651,20 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                           Navigator.of(context).pushNamed("/quest/battle/monster");
                                                         },
                                                         child: Padding(
-                                                          padding: const EdgeInsets.symmetric(vertical: 8),
-                                                          child: Text(
-                                                            "퀘스트참가 (현재 $questUserCount명 참가 중)",
-                                                            textAlign: TextAlign.center,
-                                                            style: TextStyle(color: Colors.white),
+                                                          padding: const EdgeInsets.symmetric(vertical: 4),
+                                                          child: Center(
+                                                            child: Text(
+                                                              "퀘스트참가 (현재 $questUserCount명 참가 중)",
+                                                              textAlign: TextAlign.center,
+                                                              style: TextStyle(color: Colors.white),
+                                                            ),
                                                           ),
                                                         ),
                                                       )),
                                                 ),
                                                 //TODO: 참가 인원 뷰
                                                 Expanded(
-                                                  flex: 2,
+                                                  flex: 3,
                                                   child: Padding(
                                                     padding: const EdgeInsets.all(8.0),
                                                     child: Row(
@@ -709,7 +689,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 ),
                                                 //TODO: 참가 인원 리스트뷰
                                                 Expanded(
-                                                  flex: 24,
+                                                  flex: 26,
                                                   child: ListView.separated(
                                                       separatorBuilder: (context, index) {
                                                         return Divider(
@@ -1215,6 +1195,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     );
   }
 
+  bool checkDuplicatedUser(List<mUser.User> leftUserItems){
+    List<mUser.User> tmp = [];
+    for (int i = 0; i < enterUserList.length; i++) {
+      for (int j = 0; j < leftUserItems.length; j++) {
+        if (enterUserList[i].name == leftUserItems[j].name) {
+          tmp.add(enterUserList[i]);
+        }
+      }
+    }
+    if(tmp.length > 0) return true;
+    return false;
+  }
+
   Future onRegistrationUser(List<mUser.User> leftUserItems) async {
     bool isBento = false;
     bool isCancel = false;
@@ -1238,7 +1231,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               Navigator.of(context).pop();
                               return;
                             },
-                            child: Text("취소")),
+                            child: Text("취소하기")),
                         ElevatedButton(
                             onPressed: () async {
                               isBento = true;
@@ -1250,7 +1243,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                             isBento = false;
                             Navigator.of(context).pop();
                           },
-                          child: Text("아니요"),
+                          child: Text("아니요 (일반)"),
                         )
                       ],
                     ),
@@ -1262,6 +1255,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         return;
       }
       if (isBento) {
+        //TODO: 도시락인 사람에 대해서 처리하기 
         await showDialog(
             context: _drawerKey.currentContext,
             builder: (context) => WillPopScope(
@@ -1287,11 +1281,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           ],
                         ),
                         actions: [
-                          ElevatedButton(
-                              onPressed: () async {
-                                Navigator.of(context).pop();
-                              },
-                              child: Text("괜찮아")),
+
                           ElevatedButton(
                               onPressed: () async {
                                 String url = 'tel:01020138844';
@@ -1300,14 +1290,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               },
                               child: Text("전화로하기")),
                           ElevatedButton(
-                              onPressed: () async {
-                                String url =
-                                    'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
-                                launch(url);
-                                Navigator.of(context).pop();
-                              },
-                              child: Text("아이폰")),
-                          ElevatedButton(
                             onPressed: () async {
                               String url =
                                   'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
@@ -1315,27 +1297,73 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               Navigator.of(context).pop();
                             },
                             child: Text("안드로이드"),
-                          )
+                          ),
+
+                          ElevatedButton(
+                              onPressed: () async {
+                                String url =
+                                    'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
+                                launch(url);
+                                Navigator.of(context).pop();
+                              },
+                              child: Text("아이폰")),
+
+                          ElevatedButton(
+                              onPressed: () async {
+                                Navigator.of(context).pop();
+                              },
+                              child: Text("괜찮아(나중에)")),
                         ],
                       );
                     },
                   ),
                 ));
 
+        await showDialog(
+          context: _drawerKey.currentContext,
+          builder: (context) => WillPopScope(
+            onWillPop: () {  },
+            child: AlertDialog(
+              title: Text("안내"),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text("마지막으로 확인하나만 할게요!"),
+                  Text("문자나 전화로 예약을 완료했나요? 주문에 대한 확정이 필요해요"),
+                ],
+              ),
+              actions: [
+                ElevatedButton(
+                    onPressed: () async {
+                      Navigator.of(context).pop();
+                    },
+                    child: Text("아니요")),
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.of(context).pop();
+                  },
+                  child: Text("네"),
+                )
+              ],
+            ),
+          )
+        );
         //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
         //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
         for (int i = 0; i < checkUserList.length; i++) {
           checkUserList[i].part = "도시락";
         }
+        // checkDuplicatedUser(checkUserList);
+        await refreshEnterUserList();
+        //ToDO: 이부분이 중복을 발생시키지 않을까?
         checkUserList.addAll(enterUserList);
         List<String> nameList = [];
 
         checkUserList.forEach((u) {
           //TODO 도시락이랑 일반이랑 구분하기 위함.
+          nameList.add("${u.name},${u.part}");
           // print(u.name.split(',').length);
           // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
-
-          nameList.add("${u.name},${u.part}");
           // nameList.add("${u.name}");
         });
         // print(checkUserList.length);
@@ -1348,6 +1376,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         Navigator.of(context).pop();
         Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
       } else {
+        //TODO: 도시락이 아닌 일반 신청 사용자인 경우
+
         List<String> nameList = [];
 
         for (int i = 0; i < checkUserList.length; i++) {
@@ -1357,10 +1387,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
         checkUserList.forEach((u) {
           //TODO 도시락이랑 일반이랑 구분하기 위함.
+          nameList.add("${u.name},${u.part}");
           // print(u.name.split(',').length);
           // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
-
-          nameList.add("${u.name},${u.part}");
           // nameList.add("${u.name}");
         });
         // print(checkUserList.length);
@@ -1414,7 +1443,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           showDialog(
               context: _drawerKey.currentContext,
               builder: (context) => AlertDialog(
-                    content: Text("생성된 방이 없습니다."),
+                    content: Text("생성된 방이 없습니다.", style: TextStyle(
+                    fontFamily: "NanumBarunpenR",
+                    ),),
                     actions: [
                       ElevatedButton(
                           onPressed: () {
@@ -2476,6 +2507,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                       onTap: () async {
                                                         //TODO: 이미 신청되었는데 다시 신청하는 경우 막기 (중복검사)
                                                         //TODO: 체크된 인원 리스트 확인
+                                                        //TODO: leftUserItems는 신청되지 않은 남은 사용자
                                                         List<mUser.User> checkUserList = leftUserItems
                                                             .where((element) => element.isCheck == true)
                                                             .toList();
@@ -2489,7 +2521,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                             }
                                                           }
                                                         }
-                                                        //TODO: 등록하기
+                                                        //TODO: 실시간으로 등록된 사람 이 있는지 확인하기 & 등록하기
                                                         // print(tmp.length);
                                                         if (tmp.length > 0) {
                                                           showDialog(
@@ -2522,10 +2554,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                               });
                                                           return;
                                                         } else {
+                                                          //TODO: 중복이 없다면? 등록하기
                                                           await onRegistrationUser(leftUserItems);
                                                         }
-
-                                                        //
                                                       },
                                                       child: Container(
                                                         height: 72,
@@ -2605,6 +2636,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               "퀘스트가 종료되었습니다.",
               style: TextStyle(
                 fontSize: 18,
+                fontFamily: "NanumBarunpenR",
               ),
             ),
           ),
@@ -2844,7 +2876,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
                 "참가인원보기",
-                style: TextStyle(fontSize: 16, color: Colors.white),
+                style: TextStyle(fontSize: 16, color: Colors.white,
+                  fontFamily: "NanumBarunpenR",),
               ),
             ),
           ),
@@ -2888,7 +2921,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           SizedBox(
             height: 16,
           ),
-          Text(msg),
+          Text(msg,style: TextStyle(
+            fontFamily: "NanumBarunpenR",
+          ),),
         ],
       ),
     );
@@ -2896,10 +2931,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   List<Widget> buildDrawerMenuWidgets() {
     return [
-      Image.asset(
-        "assets/img/animation_640_kkkzx3os.gif",
-        width: MediaQuery.of(context).size.width / 2.5,
-        fit: BoxFit.fitWidth,
+      GestureDetector(
+        onTap: (){
+          Navigator.of(context).pushNamed("/admin/login");
+        },
+        child: Image.asset(
+          "assets/img/animation_640_kkkzx3os.gif",
+          width: MediaQuery.of(context).size.width / 2.5,
+          fit: BoxFit.fitWidth,
+        ),
       ),
       Row(
         children: [
@@ -3018,7 +3058,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         message: '개발 정보',
         child: ListTile(
           title: Text(
-            "About",
+            "정보",
             style: TextStyle(color: Colors.black),
           ),
           leading: Icon(
