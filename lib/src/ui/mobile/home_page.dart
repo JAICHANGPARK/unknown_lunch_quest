@@ -61,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   int questUserCount = 0;
 
   Future refreshEnterUserList() async {
-    if(enterUserList.length > 0) enterUserList.clear();
+    if (enterUserList.length > 0) enterUserList.clear();
     DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
 
     querySnapshot.data()["users"].forEach((element) {
@@ -191,7 +191,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       //   // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
       //   setState(() {});
       // });
-      if(isInit){
+      if (isInit) {
         questUserCount = List.from(querySnapshot.data()["quest_entered"] ?? []).length;
         querySnapshot.data()["users"].forEach((element) {
           String part = "";
@@ -205,7 +205,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         });
       }
       isInit = true;
-
     }
   }
 
@@ -392,7 +391,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                   children: [
                                     Text(
                                       "현재시각",
-                                      style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
                                         fontFamily: "NanumBarunpenR",
                                       ),
                                     ),
@@ -416,15 +417,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                             padding: const EdgeInsets.all(8.0),
                             child: totalTicket != null
                                 ? GestureDetector(
-                                    onTap: () {
-
-                                    },
+                                    onTap: () {},
                                     child: Row(
                                       children: [
                                         Text(
                                           "총 식권수",
-                                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                                            fontFamily: "NanumBarunpenR",),
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            fontFamily: "NanumBarunpenR",
+                                          ),
                                         ),
                                         Spacer(),
                                         Text(
@@ -482,7 +484,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ),
                   //TODO: 참가인원 뷰
                   SizedBox(
-                      height: (isClosed || isWeekend || !existRoom || enterUserList.length  == 0)? MediaQuery.of(context).size.height / 1.6 : MediaQuery.of(context).size.height,
+                      height: (isClosed || isWeekend || !existRoom || enterUserList.length == 0)
+                          ? MediaQuery.of(context).size.height / 1.6
+                          : MediaQuery.of(context).size.height,
                       width: MediaQuery.of(context).size.width,
                       child: !isWeekend
                           ? existRoom
@@ -1195,7 +1199,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     );
   }
 
-  bool checkDuplicatedUser(List<mUser.User> leftUserItems){
+  bool checkDuplicatedUser(List<mUser.User> leftUserItems) {
     List<mUser.User> tmp = [];
     for (int i = 0; i < enterUserList.length; i++) {
       for (int j = 0; j < leftUserItems.length; j++) {
@@ -1204,7 +1208,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         }
       }
     }
-    if(tmp.length > 0) return true;
+    if (tmp.length > 0) return true;
     return false;
   }
 
@@ -1255,7 +1259,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         return;
       }
       if (isBento) {
-        //TODO: 도시락인 사람에 대해서 처리하기 
+        //TODO: 도시락인 사람에 대해서 처리하기
         await showDialog(
             context: _drawerKey.currentContext,
             builder: (context) => WillPopScope(
@@ -1281,7 +1285,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           ],
                         ),
                         actions: [
-
                           ElevatedButton(
                               onPressed: () async {
                                 String url = 'tel:01020138844';
@@ -1298,7 +1301,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                             },
                             child: Text("안드로이드"),
                           ),
-
                           ElevatedButton(
                               onPressed: () async {
                                 String url =
@@ -1307,7 +1309,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                 Navigator.of(context).pop();
                               },
                               child: Text("아이폰")),
-
                           ElevatedButton(
                               onPressed: () async {
                                 Navigator.of(context).pop();
@@ -1320,61 +1321,62 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 ));
 
         await showDialog(
-          context: _drawerKey.currentContext,
-          builder: (context) => WillPopScope(
-            onWillPop: () {  },
-            child: AlertDialog(
-              title: Text("안내"),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("마지막으로 확인하나만 할게요!"),
-                  Text("문자나 전화로 예약을 완료했나요? 주문에 대한 확정이 필요해요"),
-                ],
-              ),
-              actions: [
-                ElevatedButton(
-                    onPressed: () async {
-                      Navigator.of(context).pop();
-                    },
-                    child: Text("아니요")),
-                ElevatedButton(
-                  onPressed: () async {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text("네"),
-                )
-              ],
-            ),
-          )
-        );
-        //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
-        //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
-        for (int i = 0; i < checkUserList.length; i++) {
-          checkUserList[i].part = "도시락";
-        }
-        // checkDuplicatedUser(checkUserList);
-        await refreshEnterUserList();
-        //ToDO: 이부분이 중복을 발생시키지 않을까?
-        checkUserList.addAll(enterUserList);
-        List<String> nameList = [];
+            context: _drawerKey.currentContext,
+            builder: (context) => WillPopScope(
+                  onWillPop: () {},
+                  child: AlertDialog(
+                    title: Text("안내"),
+                    content: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text("마지막으로 확인하나만 할게요!"),
+                        Text("문자나 전화로 예약을 완료했나요? 주문에 대한 확정이 필요해요"),
+                      ],
+                    ),
+                    actions: [
+                      ElevatedButton(
+                          onPressed: () async {
+                            Navigator.of(context).pop();
+                          },
+                          child: Text("아니요")),
+                      ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
 
-        checkUserList.forEach((u) {
-          //TODO 도시락이랑 일반이랑 구분하기 위함.
-          nameList.add("${u.name},${u.part}");
-          // print(u.name.split(',').length);
-          // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
-          // nameList.add("${u.name}");
-        });
-        // print(checkUserList.length);
-        await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
+                          //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
+                          //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
+                          for (int i = 0; i < checkUserList.length; i++) {
+                            checkUserList[i].part = "도시락";
+                          }
+                          // checkDuplicatedUser(checkUserList);
+                          await refreshEnterUserList();
+                          //ToDO: 이부분이 중복을 발생시키지 않을까?
+                          checkUserList.addAll(enterUserList);
+                          List<String> nameList = [];
 
-        setState(() {
-          enterUserList.clear();
-        });
-        await refreshEnterUserList();
-        Navigator.of(context).pop();
-        Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
+                          checkUserList.forEach((u) {
+                            //TODO 도시락이랑 일반이랑 구분하기 위함.
+                            nameList.add("${u.name},${u.part}");
+                            // print(u.name.split(',').length);
+                            // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
+                            // nameList.add("${u.name}");
+                          });
+                          // print(checkUserList.length);
+                          await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
+
+                          setState(() {
+                            enterUserList.clear();
+                          });
+                          await refreshEnterUserList();
+                          Navigator.of(context).pop();
+                          Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
+                        },
+                        child: Text("네"),
+                      )
+                    ],
+                  ),
+                ));
       } else {
         //TODO: 도시락이 아닌 일반 신청 사용자인 경우
 
@@ -1443,9 +1445,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           showDialog(
               context: _drawerKey.currentContext,
               builder: (context) => AlertDialog(
-                    content: Text("생성된 방이 없습니다.", style: TextStyle(
-                    fontFamily: "NanumBarunpenR",
-                    ),),
+                    content: Text(
+                      "생성된 방이 없습니다.",
+                      style: TextStyle(
+                        fontFamily: "NanumBarunpenR",
+                      ),
+                    ),
                     actions: [
                       ElevatedButton(
                           onPressed: () {
@@ -1504,7 +1509,10 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                     padding: const EdgeInsets.all(8.0),
                     child: Text(
                       "마감",
-                      style: TextStyle(fontSize: 20),
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontFamily: "NanumBarunpenR",
+                      ),
                     ),
                   ),
                   onPressed: isWeekend
@@ -1569,7 +1577,14 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                 message: "참가신청",
                 child: MaterialButton(
                   padding: EdgeInsets.symmetric(vertical: 16),
-                  child: Text("참가신청", style: TextStyle(color: Colors.white, fontSize: 18)),
+                  child: Text(
+                    "참가신청",
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontFamily: "NanumBarunpenR",
+                      color: Colors.white,
+                    ),
+                  ),
                   color: Colors.black,
                   onPressed: isWeekend
                       ? () {
@@ -2876,8 +2891,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               child: Text(
                 "참가인원보기",
-                style: TextStyle(fontSize: 16, color: Colors.white,
-                  fontFamily: "NanumBarunpenR",),
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white,
+                  fontFamily: "NanumBarunpenR",
+                ),
               ),
             ),
           ),
@@ -2921,9 +2939,12 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           SizedBox(
             height: 16,
           ),
-          Text(msg,style: TextStyle(
-            fontFamily: "NanumBarunpenR",
-          ),),
+          Text(
+            msg,
+            style: TextStyle(
+              fontFamily: "NanumBarunpenR",
+            ),
+          ),
         ],
       ),
     );
@@ -2932,7 +2953,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   List<Widget> buildDrawerMenuWidgets() {
     return [
       GestureDetector(
-        onTap: (){
+        onTap: () {
           Navigator.of(context).pushNamed("/admin/login");
         },
         child: Image.asset(
