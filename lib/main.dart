@@ -3,6 +3,7 @@ import 'package:flutter_lunch_quest/src/routes/arg_quest_date.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/about_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/admin/admin_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/admin/pwd_change_page.dart';
+import 'package:flutter_lunch_quest/src/ui/mobile/admin/ticket_record_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/record/mobile_record_page.dart';
 import 'package:flutter_lunch_quest/src/ui/wide_screen/wide_home_page.dart';
 
@@ -73,7 +74,8 @@ class MyApp extends StatelessWidget {
         "/quest/battle/monster": (context) => BattlePage(),
         "/admin/login": (context) => LoginPage(),
         "/admin/home": (context) => AdminPage(),
-        "/admin/home/pwd_change": (context) => PwdChangePage()
+        "/admin/home/pwd_change": (context) => PwdChangePage(),
+        "/admin/home/ticket/record": (context) => TicketRecordPage()
       },
     );
     // MyHomePage(title: 'Lunch Quest'),

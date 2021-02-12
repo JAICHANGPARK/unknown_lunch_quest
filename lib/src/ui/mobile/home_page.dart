@@ -1215,13 +1215,16 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Future onRegistrationUser(List<mUser.User> leftUserItems) async {
     bool isBento = false;
     bool isCancel = false;
+    bool isOrder= false;
     List<mUser.User> checkUserList = leftUserItems.where((element) => element.isCheck == true).toList();
     if (checkUserList.length > 0) {
       bentoUserLength = checkUserList.length;
       await showDialog(
           context: _drawerKey.currentContext,
           builder: (context) => WillPopScope(
-                onWillPop: () {},
+                onWillPop: () async {
+                  return false;
+                },
                 child: AlertDialog(
                   title: Text("안내"),
                   content: Text("혹시 도시락 주문하세요?"),
@@ -1241,7 +1244,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               isBento = true;
                               Navigator.of(context).pop();
                             },
-                            child: Text("네")),
+                            child: Text("네 (도시락)")),
                         ElevatedButton(
                           onPressed: () async {
                             isBento = false;
@@ -1263,7 +1266,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         await showDialog(
             context: _drawerKey.currentContext,
             builder: (context) => WillPopScope(
-                  onWillPop: () {},
+                  onWillPop: () async {
+                    return false;
+                  },
                   child: StatefulBuilder(
                     builder: (BuildContext context, void Function(void Function()) setState) {
                       String bentoTime = "";
@@ -1311,7 +1316,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                               child: Text("아이폰")),
                           ElevatedButton(
                               onPressed: () async {
-                                Navigator.of(context).pop();
+                                Navigator.of(_drawerKey.currentContext).pop();
+                                isOrder = true;
                               },
                               child: Text("괜찮아(나중에)")),
                         ],
@@ -1320,73 +1326,113 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   ),
                 ));
 
-        await showDialog(
-            context: _drawerKey.currentContext,
-            builder: (context) => WillPopScope(
-                  onWillPop: () {},
-                  child: AlertDialog(
-                    title: Text("안내"),
-                    content: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text("마지막으로 확인하나만 할게요!"),
-                        Text("문자나 전화로 예약을 완료했나요? 주문에 대한 확정이 필요해요"),
-                      ],
-                    ),
-                    actions: [
-                      ElevatedButton(
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                          },
-                          child: Text("아니요")),
-                      ElevatedButton(
-                        onPressed: () async {
-                          Navigator.of(context).pop();
+        //TODO: 도시락 주문을 지금하지 않은  경우
 
-                          //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
-                          //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
-                          for (int i = 0; i < checkUserList.length; i++) {
-                            checkUserList[i].part = "도시락";
-                          }
-                          // checkDuplicatedUser(checkUserList);
-                          await refreshEnterUserList();
-                          //ToDO: 이부분이 중복을 발생시키지 않을까?
-                          checkUserList.addAll(enterUserList);
-                          List<String> nameList = [];
+        if(isOrder){
+          for (int i = 0; i < checkUserList.length; i++) {
+            checkUserList[i].part = "도시락";
+          }
+          // checkDuplicatedUser(checkUserList);
+          await refreshEnterUserList();
+          //ToDO: 이부분이 중복을 발생시키지 않을까?
+          checkUserList.addAll(enterUserList);
+          List<String> nameList = [];
+          List<String> orderNameList = [];
+          checkUserList.forEach((u) {
+            //TODO 도시락이랑 일반이랑 구분하기 위함.
+            nameList.add("${u.name},${u.part}");
+          });
+          await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
 
-                          checkUserList.forEach((u) {
-                            //TODO 도시락이랑 일반이랑 구분하기 위함.
-                            nameList.add("${u.name},${u.part}");
-                            // print(u.name.split(',').length);
-                            // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
-                            // nameList.add("${u.name}");
-                          });
-                          // print(checkUserList.length);
-                          await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
-
-                          setState(() {
-                            enterUserList.clear();
-                          });
-                          await refreshEnterUserList();
-                          Navigator.of(context).pop();
-                          Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
-                        },
-                        child: Text("네"),
-                      )
+          setState(() {
+            enterUserList.clear();
+          });
+          await refreshEnterUserList();
+          Navigator.of(_drawerKey.currentContext).pop();
+          Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
+          return;
+        }else{
+          await showDialog(
+              context: _drawerKey.currentContext,
+              builder: (context) => WillPopScope(
+                onWillPop: () async {
+                  return false;
+                },
+                child: AlertDialog(
+                  title: Text("안내"),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("마지막으로 확인하나만 할게요!"),
+                      Text("주문에 대한 확정이 필요해요"),
+                      Text("문자나 전화로 예약을 완료했나요?"),
                     ],
                   ),
-                ));
+                  actions: [
+                    ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(context).pop();
+                          Navigator.of(context).pop();
+                        },
+                        child: Text("아니요")),
+                    ElevatedButton(
+                      onPressed: () async {
+                        Navigator.of(context).pop();
+                        //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
+                        //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
+                        for (int i = 0; i < checkUserList.length; i++) {
+                          checkUserList[i].part = "도시락";
+                        }
+                        // checkDuplicatedUser(checkUserList);
+                        await refreshEnterUserList();
+                        //ToDO: 이부분이 중복을 발생시키지 않을까?
+                        List<mUser.User> orderUserList = [];
+                        orderUserList.addAll(checkUserList);
+                        checkUserList.addAll(enterUserList);
+                        List<String> nameList = [];
+                        List<String> orderNameList = [];
+                        checkUserList.forEach((u) {
+                          //TODO 도시락이랑 일반이랑 구분하기 위함.
+                          nameList.add("${u.name},${u.part}");
+                          // print(u.name.split(',').length);
+                          // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
+                          // nameList.add("${u.name}");
+                        });
+                        // print(checkUserList.length);
+                        await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
+
+                        orderUserList.forEach((element) {
+                          orderNameList.add("${element.name},${element.part},${element.team}");
+                        });
+                        await firestore
+                            .collection("lunch")
+                            .doc(currentDate)
+                            .collection("order")
+                            .add({"datetime": DateTime.now(), "users": orderNameList});
+
+                        setState(() {
+                          enterUserList.clear();
+                        });
+                        await refreshEnterUserList();
+                        Navigator.of(_drawerKey.currentContext).pop();
+                        Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
+                      },
+                      child: Text("네"),
+                    )
+                  ],
+                ),
+              ));
+        }
+
       } else {
         //TODO: 도시락이 아닌 일반 신청 사용자인 경우
 
         List<String> nameList = [];
-
         for (int i = 0; i < checkUserList.length; i++) {
           checkUserList[i].part = "일반";
         }
         checkUserList.addAll(enterUserList);
-
         checkUserList.forEach((u) {
           //TODO 도시락이랑 일반이랑 구분하기 위함.
           nameList.add("${u.name},${u.part}");
@@ -1633,7 +1679,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
                                   //TODO: 참가 인원선택을 위한 BottomSheet
                                   await showModalBottomSheet(
-                                      context: context,
+                                      context: _drawerKey.currentContext,
                                       isScrollControlled: true,
                                       builder: (context) {
                                         return Container(

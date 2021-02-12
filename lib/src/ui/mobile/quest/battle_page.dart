@@ -83,7 +83,7 @@ class _BattlePageState extends State<BattlePage> {
     // TODO: implement didChangeDependencies
     backupDate = inputDate;
     super.didChangeDependencies();
-    print(">>>didChangeDependencies");
+    // print(">>>didChangeDependencies");
   }
 
   @override
@@ -91,7 +91,7 @@ class _BattlePageState extends State<BattlePage> {
     // TODO: implement initState
 
     super.initState();
-    print("inintState");
+    // print("inintState");
     _controllerCenter = ConfettiController(duration: const Duration(seconds: 7));
     // print(">>> widget.date: ${widget.date}");
     // print(DateTime.now().toString());
@@ -108,7 +108,7 @@ class _BattlePageState extends State<BattlePage> {
     // });
 
     _windowStreamSubscription1 = html.window.onPageHide.listen((event) {
-      print("event: onPageHide");
+      // print("event: onPageHide");
       // Fluttertoast.showToast(msg: "event: onPageHide");
       logoutUser();
       if (_windowStreamSubscription != null) _windowStreamSubscription.cancel();
@@ -185,7 +185,7 @@ class _BattlePageState extends State<BattlePage> {
         // final count = data['damage'] as num;
         ref.update(data: {'damage': damage + hit});
       } else {
-        print('damage doesnt exist');
+        // print('damage doesnt exist');
       }
     });
   }

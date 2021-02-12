@@ -64,7 +64,7 @@ class _WideHomePageState extends State<WideHomePage> {
     QuerySnapshot querySnapshot = await firestore.collection("lunch").get();
 
     querySnapshot.forEach((element) {
-      print("${element.id}:${element.data()}");
+      // print("${element.id}:${element.data()}");
       List<String> userList = List<String>.from(element.data()['users']);
       records.add(Record(
           date: element.id,
