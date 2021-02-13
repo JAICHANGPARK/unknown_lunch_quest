@@ -57,3 +57,4 @@ Future<ExchangeRate> fetchExchangeRate()async{
     return rate;
   }
 }
+
