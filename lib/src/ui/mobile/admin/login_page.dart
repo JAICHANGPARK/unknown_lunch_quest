@@ -4,6 +4,7 @@ import 'package:crypto/crypto.dart';
 import 'package:firebase/firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_lunch_quest/src/remote/api.dart';
+import 'package:flutter_lunch_quest/src/remote/ip_ping.dart';
 import 'package:flutter_lunch_quest/src/utils/cut_corners_border.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 
@@ -15,7 +16,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   GlobalKey<FormState> formKey = GlobalKey();
   TextEditingController pwdTextEditController = TextEditingController();
-
+  int tryCount = 0;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,11 +59,22 @@ class _LoginPageState extends State<LoginPage> {
                           // print(result.data());
                           // print(result.data()["info"]["pwd"]);
                           if (digest.toString() == result.data()["info"]["pwd"]) {
-                            Navigator.of(context).pushReplacementNamed("/admin/home");
+                          String ip = await   getIP();
+                            await FirebaseInstance.instance.fireStore.collection('login').doc('admin').collection('log').add(
+                                {"datetime": DateTime.now(), "ip":ip});
                             Fluttertoast.showToast(msg: "로그인성공", webPosition: "center");
+                            Navigator.of(context).pushReplacementNamed("/admin/home");
                           } else {
+                            tryCount++;
                             pwdTextEditController.clear();
                             Fluttertoast.showToast(msg: "로그인실패", webPosition: "center");
+                            if(tryCount > 4){
+                              showDialog(context: context, builder: (context) => AlertDialog(
+                                content: Text("비밀번호가 기억이 나지 않으신가요?\n비밀번호를 찾고싶다면\n박제창(jaichang@angel-robotics.com)에게 문의하세요"),
+                              ));
+                              tryCount = 0;
+                            }
+
                           }
                           formKey.currentState.save();
                         }
@@ -108,10 +120,21 @@ class _LoginPageState extends State<LoginPage> {
                           // print(result.data());
                           // print(result.data()["info"]["pwd"]);
                           if (digest.toString() == result.data()["info"]["pwd"]) {
-                            Navigator.of(context).pushReplacementNamed("/admin/home");
+                            String ip = await   getIP();
+                            await FirebaseInstance.instance.fireStore.collection('login').doc('admin').collection('log').add(
+                                {"datetime": DateTime.now(), "ip":ip});
                             Fluttertoast.showToast(msg: "로그인성공", webPosition: "center");
+                            Navigator.of(context).pushReplacementNamed("/admin/home");
+
                           } else {
+                            tryCount++;
                             pwdTextEditController.clear();
+                            if(tryCount > 4){
+                              showDialog(context: context, builder: (context) => AlertDialog(
+                                content: Text("비밀번호가 기억이 나지 않으신가요?\n비밀번호를 찾고싶다면\n박제창(jaichang@angel-robotics.com)에게 문의하세요"),
+                              ));
+                              tryCount = 0;
+                            }
                             Fluttertoast.showToast(msg: "로그인실패", webPosition: "center");
                           }
                           formKey.currentState.save();
@@ -128,4 +151,6 @@ class _LoginPageState extends State<LoginPage> {
       ),
     );
   }
+
+
 }
