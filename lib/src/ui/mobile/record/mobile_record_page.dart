@@ -139,8 +139,8 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
             rows: records
                 .map((e) => DataRow(cells: [
                       DataCell(Text(e.date)),
+                      DataCell(Text(e.leftTicket == null ? "?" : e.leftTicket.toString())),
                       DataCell(Text(e.total.toString())),
-                      DataCell(Text(e.leftTicket == null ?  "?" : e.leftTicket.toString())),
                       DataCell(Text("${e.users.toString()}")),
                       DataCell(e.isClosed ? Text("마감완료") : Text("미완료")),
                     ]))
@@ -150,10 +150,10 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
                 label: Text("날짜"),
               ),
               DataColumn(
-                label: Text("인원수"),
+                label: Text("잔여수량"),
               ),
               DataColumn(
-                label: Text("잔여수량"),
+                label: Text("인원수"),
               ),
               DataColumn(
                 label: Text("인원"),

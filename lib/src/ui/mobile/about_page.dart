@@ -170,6 +170,14 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
                                         ExpansionTile(
+                                          title: Text("1.1.0"),
+                                          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                                          expandedAlignment: Alignment.centerLeft,
+                                          children: [
+                                            Text("1. ✨ UI 시스템을 변경했어요.", style: textStyle),
+                                          ],
+                                        ),
+                                        ExpansionTile(
                                           title: Text("1.0.6"),
                                           expandedCrossAxisAlignment: CrossAxisAlignment.start,
                                           expandedAlignment: Alignment.centerLeft,

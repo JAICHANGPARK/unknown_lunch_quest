@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/about_page.dart';
+import 'package:flutter_lunch_quest/src/ui/mobile/admin/admin_close_manage_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/admin/admin_login_log_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/admin/admin_page.dart';
 import 'package:flutter_lunch_quest/src/ui/mobile/admin/pwd_change_page.dart';
@@ -77,7 +78,8 @@ class MyApp extends StatelessWidget {
         "/admin/home/pwd_change": (context) => PwdChangePage(),
         "/admin/home/ticket/record/buy": (context) => TicketRecordPage(),
         "/admin/home/ticket/record/use": (context) => TicketUseRecordPage(),
-        "/admin/home/login/record": (context) => AdminLoginLogPage()
+        "/admin/home/login/record": (context) => AdminLoginLogPage(),
+        "/admin/home/manage/room": (context) => AdminCloseManagePage()
       },
     );
     // MyHomePage(title: 'Lunch Quest'),

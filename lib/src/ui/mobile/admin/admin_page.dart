@@ -76,7 +76,30 @@ class _AdminPageState extends State<AdminPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text("관리",style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold
+              ),),
+            ),
+            ListTile(
+              title: Text(
+                "마감처리",
+                style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushNamed("/admin/home/manage/room");
+              },
+              subtitle: Text("마감처리를 진행합니다.",style: TextStyle(
+                fontFamily: "NanumBarunpenR",
+              ),),
+            ),
+            Divider(),
+            SizedBox(height: 24,),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text("식권장부",style: TextStyle(
