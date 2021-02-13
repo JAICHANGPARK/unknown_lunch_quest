@@ -76,6 +76,29 @@ class _AdminPageState extends State<AdminPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text("식권장부",style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold
+              ),),
+            ),
+            ListTile(
+              title: Text(
+                "장부확인",
+                style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                ),
+              ),
+              onTap: () {
+                Navigator.of(context).pushNamed("/data/record");
+              },
+
+            ),
+            Divider(),
+            SizedBox(height: 24,),
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Text("식권관리",style: TextStyle(
@@ -121,6 +144,7 @@ class _AdminPageState extends State<AdminPage> {
                               TextField(
                                 controller: tmp,
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                keyboardType: TextInputType.number,
                               ),
                             ],
                           ),
@@ -187,6 +211,7 @@ class _AdminPageState extends State<AdminPage> {
                               TextField(
                                 controller: tmp,
                                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                                keyboardType: TextInputType.number,
                               ),
                             ],
                           ),
@@ -228,19 +253,46 @@ class _AdminPageState extends State<AdminPage> {
               ),),
             ),
             Divider(),
+
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Text("식권이력",style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold
+              ),),
+            ),
             ListTile(
               onTap: () {
-                Navigator.of(context).pushNamed( "/admin/home/ticket/record");
-
+                Navigator.of(context).pushNamed( "/admin/home/ticket/record/use");
               },
               title: Text(
-                "이력",
+                "사용 이력",
                 style: TextStyle(
                   fontFamily: "NanumBarunpenR",
                 ),
               ),
+              subtitle: Text("요일별 식권 사용량을 확인합니다.",style: TextStyle(
+                fontFamily: "NanumBarunpenR",
+              ),),
             ),
             Divider(),
+            ListTile(
+              onTap: () {
+                Navigator.of(context).pushNamed( "/admin/home/ticket/record/buy");
+              },
+              title: Text(
+                "구매 이력",
+                style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                ),
+              ),
+              subtitle: Text("구매 및 추가된 이력을 확인합니다.",style: TextStyle(
+                fontFamily: "NanumBarunpenR",
+              ),),
+            ),
+            Divider(),
+
             SizedBox(height: 24,),
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -257,6 +309,19 @@ class _AdminPageState extends State<AdminPage> {
               },
               title: Text(
                 "비밀번호 변경",
+                style: TextStyle(
+                  fontFamily: "NanumBarunpenR",
+                ),
+              ),
+            ),
+            Divider(),
+            ListTile(
+              onTap: () {
+                Navigator.of(context).pushNamed("/admin/home/login/record");
+
+              },
+              title: Text(
+                "로그인 이력",
                 style: TextStyle(
                   fontFamily: "NanumBarunpenR",
                 ),
