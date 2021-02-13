@@ -32,6 +32,7 @@ class _MobileRecordPrintPageState extends State<MobileRecordPrintPagePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: PdfPreview(
+
         build: (format) => _generatePdf(format, "terst"),
       ),
     );
@@ -45,7 +46,7 @@ class _MobileRecordPrintPageState extends State<MobileRecordPrintPagePage> {
 
   pw.Widget _contentTable(pw.Context context, ByteData font) {
     final ttf = pw.Font.ttf(font);
-    const tableHeaders = ['날짜', '인원수', '인원'];
+    const tableHeaders = ['날짜', '인원수', '잔여수량','인원'];
 
     return pw.Table.fromTextArray(
       border: null,
@@ -58,7 +59,8 @@ class _MobileRecordPrintPageState extends State<MobileRecordPrintPagePage> {
       cellAlignments: {
         0: pw.Alignment.centerLeft,
         1: pw.Alignment.centerLeft,
-        2: pw.Alignment.centerRight,
+        2: pw.Alignment.centerLeft,
+        3: pw.Alignment.centerRight,
       },
       headerStyle: pw.TextStyle(
         fontSize: 10,
@@ -67,7 +69,7 @@ class _MobileRecordPrintPageState extends State<MobileRecordPrintPagePage> {
       ),
       cellStyle: pw.TextStyle(
         font: ttf,
-        fontSize: 10,
+        fontSize: 8,
       ),
       rowDecoration: pw.BoxDecoration(
         border: pw.Border(

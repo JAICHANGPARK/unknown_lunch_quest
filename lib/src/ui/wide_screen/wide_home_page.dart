@@ -31,6 +31,8 @@ class _WideHomePageState extends State<WideHomePage> {
               date: change.doc.id,
               users: userList.map((e) => e.split(",").first).toList(),
               total: userList.length,
+              used: userList.length,
+              leftTicket: change.doc.data()['ticket_left'],
               isClosed: change.doc.data()['isClosed']));
         } else if (['modified'].contains(change.type)) {
           // print("modified");
@@ -46,6 +48,8 @@ class _WideHomePageState extends State<WideHomePage> {
                     date: change.doc.id,
                     users: userList.map((e) => e.split(",").first).toList(),
                     total: userList.length,
+                    used: userList.length,
+                    leftTicket: change.doc.data()['ticket_left'],
                     isClosed: change.doc.data()['isClosed']));
           }
 
@@ -70,6 +74,8 @@ class _WideHomePageState extends State<WideHomePage> {
           date: element.id,
           users: userList.map((e) => e.split(",").first).toList(),
           total: userList.length,
+          used: userList.length,
+          leftTicket: element.data()['ticket_left'],
           isClosed: element.data()['isClosed']));
     });
   }
@@ -119,6 +125,7 @@ class _WideHomePageState extends State<WideHomePage> {
                     .map((e) => DataRow(cells: [
                           DataCell(Text(e.date)),
                           DataCell(Text(e.total.toString())),
+                          DataCell(Text("${e.leftTicket ?? "-"}")),
                           DataCell(Text("${e.users.toString()}")),
                           DataCell(e.isClosed ? Text("마감완료") : Text("미완료")),
                         ]))
@@ -129,6 +136,9 @@ class _WideHomePageState extends State<WideHomePage> {
                   ),
                   DataColumn(
                     label: Text("인원수"),
+                  ),
+                  DataColumn(
+                    label: Text("잔여수량"),
                   ),
                   DataColumn(
                     label: Text("인원"),

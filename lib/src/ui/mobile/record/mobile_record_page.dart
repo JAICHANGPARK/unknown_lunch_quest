@@ -33,6 +33,8 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
               date: items[i].doc.id,
               users: userList.map((e) => e.split(",").first).toList(),
               total: userList.length,
+              used: userList.length,
+              leftTicket: items[i].doc.data()['ticket_left'],
               isClosed: items[i].doc.data()['isClosed']));
         } else if (['modified'].contains(items[i].type)) {
           // print("modified");
@@ -48,6 +50,8 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
                     date: items[i].doc.id,
                     users: userList.map((e) => e.split(",").first).toList(),
                     total: userList.length,
+                    used: userList.length,
+                    leftTicket: items[i].doc.data()['ticket_left'],
                     isClosed: items[i].doc.data()['isClosed']));
           }
         }
@@ -98,6 +102,8 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
           date: element.id,
           users: userList.map((e) => e.split(",").first).toList(),
           total: userList.length,
+          used: userList.length,
+          leftTicket: element.data()['ticket_left'],
           isClosed: element.data()['isClosed']));
     });
   }
@@ -134,6 +140,7 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
                 .map((e) => DataRow(cells: [
                       DataCell(Text(e.date)),
                       DataCell(Text(e.total.toString())),
+                      DataCell(Text(e.leftTicket == null ?  "?" : e.leftTicket.toString())),
                       DataCell(Text("${e.users.toString()}")),
                       DataCell(e.isClosed ? Text("마감완료") : Text("미완료")),
                     ]))
@@ -144,6 +151,9 @@ class _MobileRecordPageState extends State<MobileRecordPage> {
               ),
               DataColumn(
                 label: Text("인원수"),
+              ),
+              DataColumn(
+                label: Text("잔여수량"),
               ),
               DataColumn(
                 label: Text("인원"),
