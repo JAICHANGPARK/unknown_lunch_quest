@@ -39,7 +39,9 @@ class _TicketRecordPageState extends State<TicketRecordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text("이력"),
+        title: Text("구매 및 추가 이력",style: TextStyle(
+          fontFamily: "NanumBarunpenR",
+        ),),
       ),
       body: items.length > 0
           ? ListView.separated(
