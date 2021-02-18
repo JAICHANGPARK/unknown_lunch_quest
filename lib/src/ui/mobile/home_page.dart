@@ -13,7 +13,6 @@ import 'package:flutter_lunch_quest/src/model/bento_order.dart';
 import 'package:flutter_lunch_quest/src/model/user.dart' as mUser;
 import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
-import 'package:flutter_time_picker_spinner/flutter_time_picker_spinner.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
@@ -54,7 +53,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
   int bentoUserLength = 0; //도시락 주문 인원을 받는 변수
 
-  String currentDate = DateTime.now().add(Duration(days: -2)).toString().split(" ").first;
+  String currentDate = DateTime.now().toString().split(" ").first;
   int totalTicket;
 
   DateTime nowDateTime = DateTime.now(); // 생일자를 위한 매월 첫번째 주 월요일
@@ -93,19 +92,21 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       //   // print("도ㅓ시락사람: ${enterUserList.where((element) => element.name.split(',').last =="도시락").toList()}");
       //   setState(() {});
       // });
-      if (isInit) {
-        questUserCount = List.from(querySnapshot.data()["quest_entered"] ?? []).length;
-        querySnapshot.data()["users"].forEach((element) {
-          String part = "";
-          if (element.toString().split(",").length == 1) {
-            part = "일반";
-          } else {
-            part = element.toString().split(",").last;
-          }
-          String name = element.toString().split(",").first;
-          enterUserList.add(mUser.User(name: name, team: "", part: part));
-        });
-      }
+      // if (isInit) {
+      //   questUserCount = List.from(querySnapshot.data()["quest_entered"] ?? []).length;
+      //   querySnapshot.data()["users"].forEach((element) {
+      //     String part = "";
+      //     if (element.toString().split(",").length == 1) {
+      //       part = "일반";
+      //     } else {
+      //       part = element.toString().split(",")[1];
+      //     }
+      //     String name = element.toString().split(",").first;
+      //     String team = element.toString().split(",").length > 2 ? element.toString().split(",").last : "";
+      //     enterUserList.add(mUser.User(name: name, team: team, part: part));
+      //   });
+      // }
+      if (isInit) refreshEnterUserList(isNotify: false);
     }
   }
 
@@ -152,25 +153,29 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     await querySnapshot.docs.first.ref.update(data: {"count": (total + value)});
   }
 
-  Future refreshEnterUserList() async {
+  Future<void> refreshEnterUserList({bool isNotify = true}) async {
     if (enterUserList.length > 0) enterUserList.clear();
-    DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
 
+    DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
     querySnapshot.data()["users"].forEach((element) {
       String part = "";
       if (element.toString().split(",").length == 1) {
         part = "일반";
       } else {
-        part = element.toString().split(",").last;
+        part = element.toString().split(",")[1];
       }
       String name = element.toString().split(",").first;
-      enterUserList.add(mUser.User(name: name, team: "", part: part));
+      String team = element.toString().split(",").length > 2 ? element.toString().split(",").last : "";
+      enterUserList.add(mUser.User(name: name, team: team, part: part));
     });
 
-    setState(() {});
+    if(isNotify){
+      print("refreshEnterUserList is Notify");
+      setState(() {});
+    }
   }
 
-  Future refreshBentoReserveList() async {
+  Future<void> refreshBentoReserveList() async {
     if (bentoReservationList.length > 0) bentoReservationList.clear();
     QuerySnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).collection("order").get();
     querySnapshot.docChanges().forEach((element) {
@@ -182,8 +187,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
             BentoOrder(users: [...item['users']], orderTime: item['datetime'].toString(), revTime: item['rev_time']));
       }
     });
-
-    setState(() {});
+    bentoReservationList.sort((a, b) => DateTime.parse(a.orderTime).compareTo(DateTime.parse(b.orderTime)));
   }
 
   void streamLunchCollection() {
@@ -203,15 +207,15 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
               if (element.toString().split(",").length == 1) {
                 part = "일반";
               } else {
-                part = element.toString().split(",").last;
+                part = element.toString().split(",")[1];
               }
               String name = element.toString().split(",").first;
-              // print("$name / $part");
-              enterUserList.add(mUser.User(name: name, team: "", part: part));
+              String team = element.toString().split(",").length > 2 ? element.toString().split(",").last : "";
+              enterUserList.add(mUser.User(name: name, team: team, part: part));
             });
           }
         }
-        setState(() {});
+        // setState(() {});
         // else if (change.type == "modified") {
         //   print("change : modified");
         //   print(change.doc.id);
@@ -292,8 +296,11 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         totalTicket = value;
       });
     });
+
     streamLunchCollection();
-    refreshBentoReserveList();
+    refreshBentoReserveList().then((value) {
+      setState(() {});
+    });
     isInit = true; // checkExistRoom에서 처음에 stream과 중복되서 사용자를 가져오는것을 방지하기 위함
   }
 
@@ -318,6 +325,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     _controllerCenter.dispose();
     super.dispose();
   }
+
+  bool isBlockDoubleFetch = true;
 
   @override
   Widget build(BuildContext context) {
@@ -364,31 +373,60 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   //TODO: 캘린더 뷰
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Card(
-                      elevation: 2,
-                      child: Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: FlutterDatePickerTimeline(
-                          startDate: DateTime.now().add(Duration(days: -14)),
-                          endDate: DateTime.now(),
-                          initialSelectedDate: DateTime.now(),
-                          onSelectedDateChange: (DateTime dateTime) async {
-                            // print(dateTime);
-                            if (dateTime.weekday == 6 || dateTime.weekday == 7) {
-                              setState(() {
-                                isWeekend = true;
-                              });
-                            } else {
-                              setState(() {
-                                isWeekend = false;
-                              });
-                            }
-                            currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
-                            await saveSelectDate(dateTime.toString());
-                            await checkExistRoom(currentDate);
-                            await refreshBentoReserveList();
-                            setState(() {});
-                          },
+                    child: SizedBox(
+                      height: 64,
+                      child: Card(
+                        elevation: 2,
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: FlutterDatePickerTimeline(
+                            startDate: DateTime.now().add(Duration(days: -14)),
+                            endDate: DateTime.now(),
+                            initialSelectedDate: nowDateTime,
+                            onSelectedDateChange: (DateTime dateTime) {
+                              // print(">>> Call onSelectedDateChange $dateTime");
+
+                              nowDateTime = dateTime;
+                              currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
+                              if(isBlockDoubleFetch){
+                                isBlockDoubleFetch = false;
+                                saveSelectDate(dateTime.toString()).then((value) {
+                                  checkExistRoom(currentDate).then((value) {
+                                    refreshBentoReserveList().then((value) {
+                                      isBlockDoubleFetch = true;
+                                      if (dateTime.weekday == 6 || dateTime.weekday == 7) {
+                                        setState(() {
+                                          isWeekend = true;
+                                        });
+                                      } else {
+                                        setState(() {
+                                          isWeekend = false;
+                                        });
+                                      }
+                                    });
+                                  });
+                                });
+                              }
+
+                            },
+                            // onSelectedDateChange: (DateTime dateTime) async {
+                            //   // print(dateTime);
+                            //   if (dateTime.weekday == 6 || dateTime.weekday == 7) {
+                            //     setState(() {
+                            //       isWeekend = true;
+                            //     });
+                            //   } else {
+                            //     setState(() {
+                            //       isWeekend = false;
+                            //     });
+                            //   }
+                            //   currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
+                            //   await saveSelectDate(dateTime.toString());
+                            //   await checkExistRoom(currentDate);
+                            //   await refreshBentoReserveList();
+                            //   setState(() {});
+                            // },
+                          ),
                         ),
                       ),
                     ),
@@ -505,6 +543,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   SizedBox(
                     height: 4,
                   ),
+
                   isWeekend
                       ? SizedBox(
                           height: MediaQuery.of(context).size.height / 1.7,
@@ -512,7 +551,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           child: buildWeekendWidget())
                       : SizedBox(),
                   //TODO: 총 인원수
-
                   //길이가 길면
                   SizedBox(
                       height: !isWeekend
@@ -588,327 +626,31 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                       : Container(),
                   SizedBox(height: 16),
 
-                  (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
-                      ? //TODO: 참가 인원 파티 목록 뷰
-                      SizedBox(
-                          width: MediaQuery.of(context).size.width,
-                          height: 160,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  "파티현황",
-                                  style: TextStyle(
-                                      fontFamily: "NanumBarunpenR", fontWeight: FontWeight.bold, fontSize: 18),
-                                ),
-                              ),
-                              Expanded(
-                                child: Card(
-                                  elevation: 3,
-                                  child: Column(
-                                    children: [
-                                      //TODO: 파티 목록
-                                      Expanded(
-                                        flex: 3,
-                                        child: Padding(
-                                          padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
-                                          child: Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            crossAxisAlignment: CrossAxisAlignment.center,
-                                            children: [
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                  children: [
-                                                    Expanded(
-                                                        child: Padding(
-                                                      padding: const EdgeInsets.only(left: 8),
-                                                      child: Text(
-                                                        "도시락 파티",
-                                                        style: TextStyle(
-                                                          fontFamily: "NanumBarunpenR",
-                                                        ),
-                                                      ),
-                                                    )),
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Expanded(
-                                                            child: LinearPercentIndicator(
-                                                              lineHeight: 6.0,
-                                                              percent: (enterUserList
-                                                                      .where((element) => element.part == "도시락")
-                                                                      .toList()
-                                                                      .length /
-                                                                  enterUserList.length),
-                                                              progressColor: Theme.of(context).accentColor,
-                                                            ),
-                                                          ),
-                                                          Text(
-                                                            "${enterUserList.where((element) => element.part == "도시락").toList().length}/${enterUserList.length}명",
-                                                            style: TextStyle(fontSize: 12),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 24,
-                                              ),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                  children: [
-                                                    Expanded(
-                                                        child: Text(
-                                                      "일반 파티",
-                                                      style: TextStyle(
-                                                        fontFamily: "NanumBarunpenR",
-                                                      ),
-                                                    )),
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Expanded(
-                                                            child: LinearPercentIndicator(
-                                                              lineHeight: 6.0,
-                                                              percent: (enterUserList
-                                                                      .where((element) => element.part == "일반")
-                                                                      .toList()
-                                                                      .length /
-                                                                  enterUserList.length),
-                                                              progressColor: Colors.red,
-                                                            ),
-                                                          ),
-                                                          Text(
-                                                            "${enterUserList.where((element) => element.part == "일반").toList().length}/${enterUserList.length}명",
-                                                            style: TextStyle(fontSize: 12),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              SizedBox(
-                                                width: 24,
-                                              ),
-                                              Expanded(
-                                                child: Column(
-                                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                                                  children: [
-                                                    Expanded(
-                                                        child: Text(
-                                                      "미참가",
-                                                      style: TextStyle(
-                                                        fontFamily: "NanumBarunpenR",
-                                                      ),
-                                                    )),
-                                                    Expanded(
-                                                      child: Row(
-                                                        children: [
-                                                          Expanded(
-                                                            child: FirebaseInstance.instance.allUserList.length > 0
-                                                                ? LinearPercentIndicator(
-                                                                    lineHeight: 6.0,
-                                                                    percent: (FirebaseInstance
-                                                                                .instance.allUserList.length -
-                                                                            enterUserList.length) /
-                                                                        FirebaseInstance.instance.allUserList.length,
-                                                                    progressColor: Colors.blueGrey,
-                                                                  )
-                                                                : LinearPercentIndicator(
-                                                                    lineHeight: 6.0,
-                                                                    percent: 0.0,
-                                                                    progressColor: Colors.blueGrey,
-                                                                  ),
-                                                          ),
-                                                          Text(
-                                                            FirebaseInstance.instance.allUserList.length > 0
-                                                                ? "${FirebaseInstance.instance.allUserList.length - enterUserList.length}/${FirebaseInstance.instance.allUserList.length}명"
-                                                                : "?/?명",
-                                                            style: TextStyle(fontSize: 12),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      //TODO: 퀘스트 참가 버튼
-                                      Expanded(
-                                        flex: 3,
-                                        child: Padding(
-                                            padding: const EdgeInsets.all(8.0),
-                                            child: MaterialButton(
-                                              minWidth: double.infinity,
-                                              color: Colors.black,
-                                              onPressed: () async {
-                                                await saveDateCounter(currentDate);
-                                                Navigator.of(context).pushNamed("/quest/battle/monster");
-                                              },
-                                              child: Padding(
-                                                padding: const EdgeInsets.symmetric(vertical: 4),
-                                                child: Center(
-                                                  child: Text(
-                                                    "퀘스트참가 (현재 $questUserCount명 참가 중)",
-                                                    textAlign: TextAlign.center,
-                                                    style: TextStyle(
-                                                      color: Colors.white,
-                                                      fontFamily: "NanumBarunpenR",
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            )),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Container(),
-                  SizedBox(height: 16),
-
-                  (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
-                      ? //TODO:도시락 예약 인원
-                  SizedBox(
-                    height: 240,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            "도시락주문",
-                            style: TextStyle(
-                                fontFamily: "NanumBarunpenR", fontWeight: FontWeight.bold, fontSize: 18),
-                          ),
-                        ),
-                        Expanded(
-                          child: bentoReservationList.length > 0 ?
-                          ListView.builder(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: bentoReservationList.length,
-                              itemBuilder: (context, index) {
-                                var users = bentoReservationList[index].users;
-                                return Padding(
-                                  padding: const EdgeInsets.only(right: 12),
-                                  child: SizedBox(
-                                    width: 240,
-                                    child: Card(
-                                      elevation: 3,
-                                      child: Padding(
-                                        padding: const EdgeInsets.all(16.0),
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Expanded(
-                                              flex: 1,
-                                              child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                                children: [
-                                                  Text(
-                                                    "${index + 1}팀 (${bentoReservationList[index].revTime})",
-                                                    style: TextStyle(
-                                                      fontFamily: "NanumBarunpenR",
-                                                      fontSize: 20,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                  Text(
-                                                    "${users.length}명",
-                                                    style: TextStyle(
-                                                      fontFamily: "NanumBarunpenR",
-                                                      fontSize: 20,
-                                                      fontWeight: FontWeight.bold,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                            Expanded(
-                                              flex: 3,
-                                              child: Row(
-                                                children: [
-                                                  Expanded(
-                                                      flex:2,
-                                                      child: Stack(
-                                                        children: [
-                                                          Positioned(child: CircleAvatar(
-                                                              backgroundColor: Colors.black,
-                                                              foregroundColor: Colors.white,
-                                                              child: Text("${users[0].split(',').first.substring(0,1)}")
-                                                          ),
-                                                            left: 0,
-                                                            top: 0,
-                                                          ),
-                                                          users.length > 1 ?  Positioned(child: CircleAvatar(
-                                                              backgroundColor: Colors.grey,
-                                                              foregroundColor: Colors.white,
-                                                              child: Text("${users[1].split(',').first.substring(0,1)}")
-                                                          ),
-                                                            left: 16,
-                                                            top: 16,
-                                                          ) : Container(),
-                                                        ],
-                                                      )),
-                                                  Expanded(
-                                                    flex:4,
-                                                    child: ListView.builder(
-                                                      shrinkWrap: true,
-                                                      itemBuilder: (context, idx) {
-                                                        return Text("${users[idx].split(',').first}");
-                                                      },
-                                                      itemCount: users.length,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              }) : Container() ,
-                        ),
-                      ],
-                    ),
-                  )
-                      : Container(),
-                  SizedBox(height: 16),
                   //TODO: 참가 인원 리스트뷰
                   (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
                       ? //TODO: 참가 인원 리스트뷰
                       SizedBox(
-                          height: 360,
+                          height: 320,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Padding(
                                 padding: const EdgeInsets.all(8.0),
-                                child: Text(
-                                  "신청인원",
-                                  style: TextStyle(
-                                      fontFamily: "NanumBarunpenR", fontWeight: FontWeight.bold, fontSize: 18),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      "신청인원",
+                                      style: TextStyle(
+                                          fontFamily: "NanumBarunpenR", fontWeight: FontWeight.bold, fontSize: 18),
+                                    ),
+                                    IconButton(
+                                        icon: Icon(Icons.keyboard_arrow_right),
+                                        onPressed: () {
+                                          Navigator.of(context).pushNamed("/home/user/list");
+                                        })
+                                  ],
                                 ),
                               ),
                               Expanded(
@@ -946,7 +688,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         child: ListView.separated(
                                             separatorBuilder: (context, index) {
                                               return Divider(
-                                                height: 10,
+                                                height: 6,
                                               );
                                             },
                                             itemCount: enterUserList.length,
@@ -1186,6 +928,346 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                           ),
                         )
                       : Container(),
+                  SizedBox(height: 16),
+
+                  //TODO:도시락 예약 인원 뷰
+                  (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
+                      ? SizedBox(
+                          height: bentoReservationList.length > 0 ? 240 : 0,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  "도시락주문",
+                                  style: TextStyle(
+                                      fontFamily: "NanumBarunpenR", fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                              ),
+                              Expanded(
+                                  child: ListView.builder(
+                                      scrollDirection: Axis.horizontal,
+                                      itemCount: bentoReservationList.length,
+                                      itemBuilder: (context, index) {
+                                        var users = bentoReservationList[index].users;
+                                        return Padding(
+                                          padding: const EdgeInsets.only(right: 12),
+                                          child: SizedBox(
+                                            width: 240,
+                                            child: InkWell(
+                                              onTap: () {},
+                                              child: Card(
+                                                elevation: 3,
+                                                child: Padding(
+                                                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Expanded(
+                                                        flex: 1,
+                                                        child: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [
+                                                            Spacer(),
+                                                            Text(
+                                                              "${bentoReservationList[index].orderTime}",
+                                                              style: TextStyle(
+                                                                fontFamily: "NanumBarunpenR",
+                                                                fontSize: 12,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      Expanded(
+                                                        flex: 1,
+                                                        child: Row(
+                                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                          children: [
+                                                            Text(
+                                                              "${index + 1}팀 (${bentoReservationList[index].revTime})",
+                                                              style: TextStyle(
+                                                                fontFamily: "NanumBarunpenR",
+                                                                fontSize: 20,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                            Text(
+                                                              "${users.length}명",
+                                                              style: TextStyle(
+                                                                fontFamily: "NanumBarunpenR",
+                                                                fontSize: 20,
+                                                                fontWeight: FontWeight.bold,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                      SizedBox(
+                                                        height: 8,
+                                                      ),
+                                                      Expanded(
+                                                        flex: 4,
+                                                        child: Row(
+                                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                                          children: [
+                                                            Expanded(
+                                                                flex: 2,
+                                                                child: Stack(
+                                                                  children: [
+                                                                    Positioned(
+                                                                      child: CircleAvatar(
+                                                                          backgroundColor: Colors.black,
+                                                                          foregroundColor: Colors.white,
+                                                                          child: Text(
+                                                                              "${users[0].split(',').first.substring(0, 1)}")),
+                                                                      left: 0,
+                                                                      top: 0,
+                                                                    ),
+                                                                    users.length > 1
+                                                                        ? Positioned(
+                                                                            child: CircleAvatar(
+                                                                                backgroundColor: Colors.grey,
+                                                                                foregroundColor: Colors.white,
+                                                                                child: Text(
+                                                                                    "${users[1].split(',').first.substring(0, 1)}")),
+                                                                            left: 16,
+                                                                            top: 16,
+                                                                          )
+                                                                        : Container(),
+                                                                  ],
+                                                                )),
+                                                            Expanded(
+                                                              flex: 4,
+                                                              child: ListView.builder(
+                                                                shrinkWrap: true,
+                                                                itemBuilder: (context, idx) {
+                                                                  return Text(
+                                                                    "${users[idx].split(',').first}",
+                                                                    style: TextStyle(fontFamily: "NanumBarunpenR"),
+                                                                  );
+                                                                },
+                                                                itemCount: users.length,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        );
+                                      })),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          height: 0,
+                        ),
+                  SizedBox(height: 16),
+
+                  //TODO: 참가 인원 파티 목록 뷰
+                  (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
+                      ? SizedBox(
+                          width: MediaQuery.of(context).size.width,
+                          height: 160,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.all(8.0),
+                                child: Text(
+                                  "파티현황",
+                                  style: TextStyle(
+                                      fontFamily: "NanumBarunpenR", fontWeight: FontWeight.bold, fontSize: 18),
+                                ),
+                              ),
+                              Expanded(
+                                child: Card(
+                                  elevation: 3,
+                                  child: Column(
+                                    children: [
+                                      //TODO: 파티 목록
+                                      Expanded(
+                                        flex: 3,
+                                        child: Padding(
+                                          padding: const EdgeInsets.fromLTRB(8, 12, 8, 0),
+                                          child: Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            crossAxisAlignment: CrossAxisAlignment.center,
+                                            children: [
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                  children: [
+                                                    Expanded(
+                                                        child: Padding(
+                                                      padding: const EdgeInsets.only(left: 8),
+                                                      child: Text(
+                                                        "도시락 파티",
+                                                        style: TextStyle(
+                                                          fontFamily: "NanumBarunpenR",
+                                                        ),
+                                                      ),
+                                                    )),
+                                                    Expanded(
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: LinearPercentIndicator(
+                                                              lineHeight: 6.0,
+                                                              percent: (enterUserList
+                                                                      .where((element) => element.part == "도시락")
+                                                                      .toList()
+                                                                      .length /
+                                                                  enterUserList.length),
+                                                              progressColor: Theme.of(context).accentColor,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            "${enterUserList.where((element) => element.part == "도시락").toList().length}/${enterUserList.length}명",
+                                                            style: TextStyle(fontSize: 12),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 24,
+                                              ),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                  children: [
+                                                    Expanded(
+                                                        child: Text(
+                                                      "일반 파티",
+                                                      style: TextStyle(
+                                                        fontFamily: "NanumBarunpenR",
+                                                      ),
+                                                    )),
+                                                    Expanded(
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: LinearPercentIndicator(
+                                                              lineHeight: 6.0,
+                                                              percent: (enterUserList
+                                                                      .where((element) => element.part == "일반")
+                                                                      .toList()
+                                                                      .length /
+                                                                  enterUserList.length),
+                                                              progressColor: Colors.red,
+                                                            ),
+                                                          ),
+                                                          Text(
+                                                            "${enterUserList.where((element) => element.part == "일반").toList().length}/${enterUserList.length}명",
+                                                            style: TextStyle(fontSize: 12),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                width: 24,
+                                              ),
+                                              Expanded(
+                                                child: Column(
+                                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                                  children: [
+                                                    Expanded(
+                                                        child: Text(
+                                                      "미참가",
+                                                      style: TextStyle(
+                                                        fontFamily: "NanumBarunpenR",
+                                                      ),
+                                                    )),
+                                                    Expanded(
+                                                      child: Row(
+                                                        children: [
+                                                          Expanded(
+                                                            child: FirebaseInstance.instance.allUserList.length > 0
+                                                                ? LinearPercentIndicator(
+                                                                    lineHeight: 6.0,
+                                                                    percent: (FirebaseInstance
+                                                                                .instance.allUserList.length -
+                                                                            enterUserList.length) /
+                                                                        FirebaseInstance.instance.allUserList.length,
+                                                                    progressColor: Colors.blueGrey,
+                                                                  )
+                                                                : LinearPercentIndicator(
+                                                                    lineHeight: 6.0,
+                                                                    percent: 0.0,
+                                                                    progressColor: Colors.blueGrey,
+                                                                  ),
+                                                          ),
+                                                          Text(
+                                                            FirebaseInstance.instance.allUserList.length > 0
+                                                                ? "${FirebaseInstance.instance.allUserList.length - enterUserList.length}/${FirebaseInstance.instance.allUserList.length}명"
+                                                                : "?/?명",
+                                                            style: TextStyle(fontSize: 12),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                      //TODO: 퀘스트 참가 버튼
+                                      Expanded(
+                                        flex: 3,
+                                        child: Padding(
+                                            padding: const EdgeInsets.all(8.0),
+                                            child: MaterialButton(
+                                              minWidth: double.infinity,
+                                              color: Colors.black,
+                                              onPressed: () async {
+                                                await saveDateCounter(currentDate);
+                                                Navigator.of(context).pushNamed("/quest/battle/monster");
+                                              },
+                                              child: Padding(
+                                                padding: const EdgeInsets.symmetric(vertical: 4),
+                                                child: Center(
+                                                  child: Text(
+                                                    "퀘스트참가 (현재 $questUserCount명 참가 중)",
+                                                    textAlign: TextAlign.center,
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontFamily: "NanumBarunpenR",
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            )),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : Container(
+                          height: 0,
+                        ),
                   SizedBox(height: 16),
 
                   // //TODO: 도시락 나중에 한꺼번에 신청 뷰
@@ -1499,7 +1581,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   Future onRegistrationUser(List<mUser.User> leftUserItems) async {
     bool isBento = false;
     bool isCancel = false;
-    bool isOrder = false;
+    bool isAfter = false;
     List<mUser.User> checkUserList = leftUserItems.where((element) => element.isCheck == true).toList();
     if (checkUserList.length > 0) {
       bentoUserLength = checkUserList.length;
@@ -1546,73 +1628,74 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         return;
       }
       if (isBento) {
+        isAfter = true;
         //TODO: 도시락인 사람에 대해서 처리하기
-        await showDialog(
-            context: _drawerKey.currentContext,
-            builder: (context) => WillPopScope(
-                  onWillPop: () async {
-                    return false;
-                  },
-                  child: StatefulBuilder(
-                    builder: (BuildContext context, void Function(void Function()) setState) {
-                      String bentoTime = "";
-                      return AlertDialog(
-                        title: Text("안내"),
-                        content: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text("잠깐만요! 어떤 핸드폰 사용하세요?"
-                                "\n제가 문자로 바로 전달할 수 있도록 도와줄게요."),
-                            TimePickerSpinner(
-                              is24HourMode: true,
-                              highlightedTextStyle: TextStyle(color: Theme.of(context).accentColor, fontSize: 32),
-                              normalTextStyle: TextStyle(color: Theme.of(context).accentColor, fontSize: 32),
-                              onTimeChange: (time) {
-                                bentoTime = DateFormat("HH시mm분").format(time);
-                              },
-                            )
-                          ],
-                        ),
-                        actions: [
-                          ElevatedButton(
-                              onPressed: () async {
-                                String url = 'tel:01020138844';
-                                launch(url);
-                                Navigator.of(context).pop();
-                              },
-                              child: Text("전화로하기")),
-                          ElevatedButton(
-                            onPressed: () async {
-                              String url =
-                                  'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
-                              launch(url);
-                              Navigator.of(context).pop();
-                            },
-                            child: Text("안드로이드"),
-                          ),
-                          ElevatedButton(
-                              onPressed: () async {
-                                String url =
-                                    'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
-                                launch(url);
-                                Navigator.of(context).pop();
-                              },
-                              child: Text("아이폰")),
-                          ElevatedButton(
-                              onPressed: () async {
-                                Navigator.of(_drawerKey.currentContext).pop();
-                                isOrder = true;
-                              },
-                              child: Text("괜찮아(나중에)")),
-                        ],
-                      );
-                    },
-                  ),
-                ));
+        // await showDialog(
+        //     context: _drawerKey.currentContext,
+        //     builder: (context) => WillPopScope(
+        //           onWillPop: () async {
+        //             return false;
+        //           },
+        //           child: StatefulBuilder(
+        //             builder: (BuildContext context, void Function(void Function()) setState) {
+        //               String bentoTime = "";
+        //               return AlertDialog(
+        //                 title: Text("안내"),
+        //                 content: Column(
+        //                   mainAxisSize: MainAxisSize.min,
+        //                   children: [
+        //                     Text("잠깐만요! 어떤 핸드폰 사용하세요?"
+        //                         "\n제가 문자로 바로 전달할 수 있도록 도와줄게요."),
+        //                     TimePickerSpinner(
+        //                       is24HourMode: true,
+        //                       highlightedTextStyle: TextStyle(color: Theme.of(context).accentColor, fontSize: 32),
+        //                       normalTextStyle: TextStyle(color: Theme.of(context).accentColor, fontSize: 32),
+        //                       onTimeChange: (time) {
+        //                         bentoTime = DateFormat("HH시mm분").format(time);
+        //                       },
+        //                     )
+        //                   ],
+        //                 ),
+        //                 actions: [
+        //                   ElevatedButton(
+        //                       onPressed: () async {
+        //                         String url = 'tel:01020138844';
+        //                         launch(url);
+        //                         Navigator.of(context).pop();
+        //                       },
+        //                       child: Text("전화로하기")),
+        //                   ElevatedButton(
+        //                     onPressed: () async {
+        //                       String url =
+        //                           'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
+        //                       launch(url);
+        //                       Navigator.of(context).pop();
+        //                     },
+        //                     child: Text("안드로이드"),
+        //                   ),
+        //                   ElevatedButton(
+        //                       onPressed: () async {
+        //                         String url =
+        //                             'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 $bentoUserLength명 $bentoTime에 도시락 받으러갈게요!';
+        //                         launch(url);
+        //                         Navigator.of(context).pop();
+        //                       },
+        //                       child: Text("아이폰")),
+        //                   ElevatedButton(
+        //                       onPressed: () async {
+        //                         Navigator.of(_drawerKey.currentContext).pop();
+        //                         isAfter = true;
+        //                       },
+        //                       child: Text("괜찮아(나중에)")),
+        //                 ],
+        //               );
+        //             },
+        //           ),
+        //         ));
 
         //TODO: 도시락 주문을 지금하지 않은  경우
 
-        if (isOrder) {
+        if (isAfter) {
           for (int i = 0; i < checkUserList.length; i++) {
             checkUserList[i].part = "도시락";
           }
@@ -1624,7 +1707,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           List<String> orderNameList = [];
           checkUserList.forEach((u) {
             //TODO 도시락이랑 일반이랑 구분하기 위함.
-            nameList.add("${u.name},${u.part}");
+            nameList.add("${u.name},${u.part},${u.team}");
           });
           await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
 
@@ -1636,77 +1719,77 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
           Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
           return;
         } else {
-          await showDialog(
-              context: _drawerKey.currentContext,
-              builder: (context) => WillPopScope(
-                    onWillPop: () async {
-                      return false;
-                    },
-                    child: AlertDialog(
-                      title: Text("안내"),
-                      content: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text("마지막으로 확인하나만 할게요!"),
-                          Text("주문에 대한 확정이 필요해요"),
-                          Text("문자나 전화로 예약을 완료했나요?"),
-                        ],
-                      ),
-                      actions: [
-                        ElevatedButton(
-                            onPressed: () async {
-                              Navigator.of(context).pop();
-                              Navigator.of(context).pop();
-                            },
-                            child: Text("아니요")),
-                        ElevatedButton(
-                          onPressed: () async {
-                            Navigator.of(context).pop();
-                            //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
-                            //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
-                            for (int i = 0; i < checkUserList.length; i++) {
-                              checkUserList[i].part = "도시락";
-                            }
-                            // checkDuplicatedUser(checkUserList);
-                            await refreshEnterUserList();
-                            //ToDO: 이부분이 중복을 발생시키지 않을까?
-                            List<mUser.User> orderUserList = [];
-                            orderUserList.addAll(checkUserList);
-                            checkUserList.addAll(enterUserList);
-                            List<String> nameList = [];
-                            List<String> orderNameList = [];
-                            checkUserList.forEach((u) {
-                              //TODO 도시락이랑 일반이랑 구분하기 위함.
-                              nameList.add("${u.name},${u.part}");
-                              // print(u.name.split(',').length);
-                              // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
-                              // nameList.add("${u.name}");
-                            });
-                            // print(checkUserList.length);
-                            await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
-
-                            orderUserList.forEach((element) {
-                              orderNameList.add("${element.name},${element.part},${element.team}");
-                            });
-                            await firestore
-                                .collection("lunch")
-                                .doc(currentDate)
-                                .collection("order")
-                                .add({"datetime": DateTime.now(), "users": orderNameList});
-
-                            setState(() {
-                              enterUserList.clear();
-                            });
-                            await refreshEnterUserList();
-                            Navigator.of(_drawerKey.currentContext).pop();
-                            Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
-                          },
-                          child: Text("네"),
-                        )
-                      ],
-                    ),
-                  ));
+          // await showDialog(
+          //     context: _drawerKey.currentContext,
+          //     builder: (context) => WillPopScope(
+          //           onWillPop: () async {
+          //             return false;
+          //           },
+          //           child: AlertDialog(
+          //             title: Text("안내"),
+          //             content: Column(
+          //               mainAxisSize: MainAxisSize.min,
+          //               crossAxisAlignment: CrossAxisAlignment.start,
+          //               children: [
+          //                 Text("마지막으로 확인하나만 할게요!"),
+          //                 Text("주문에 대한 확정이 필요해요"),
+          //                 Text("문자나 전화로 예약을 완료했나요?"),
+          //               ],
+          //             ),
+          //             actions: [
+          //               ElevatedButton(
+          //                   onPressed: () async {
+          //                     Navigator.of(context).pop();
+          //                     Navigator.of(context).pop();
+          //                   },
+          //                   child: Text("아니요")),
+          //               ElevatedButton(
+          //                 onPressed: () async {
+          //                   Navigator.of(context).pop();
+          //                   //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
+          //                   //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
+          //                   for (int i = 0; i < checkUserList.length; i++) {
+          //                     checkUserList[i].part = "도시락";
+          //                   }
+          //                   // checkDuplicatedUser(checkUserList);
+          //                   await refreshEnterUserList();
+          //                   //ToDO: 이부분이 중복을 발생시키지 않을까?
+          //                   List<mUser.User> orderUserList = [];
+          //                   orderUserList.addAll(checkUserList);
+          //                   checkUserList.addAll(enterUserList);
+          //                   List<String> nameList = [];
+          //                   List<String> orderNameList = [];
+          //                   checkUserList.forEach((u) {
+          //                     //TODO 도시락이랑 일반이랑 구분하기 위함.
+          //                     nameList.add("${u.name},${u.part}");
+          //                     // print(u.name.split(',').length);
+          //                     // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
+          //                     // nameList.add("${u.name}");
+          //                   });
+          //                   // print(checkUserList.length);
+          //                   await firestore.collection("lunch").doc(currentDate).update(data: {"users": nameList});
+          //
+          //                   orderUserList.forEach((element) {
+          //                     orderNameList.add("${element.name},${element.part},${element.team}");
+          //                   });
+          //                   await firestore
+          //                       .collection("lunch")
+          //                       .doc(currentDate)
+          //                       .collection("order")
+          //                       .add({"datetime": DateTime.now(), "users": orderNameList});
+          //
+          //                   setState(() {
+          //                     enterUserList.clear();
+          //                   });
+          //                   await refreshEnterUserList();
+          //                   Navigator.of(_drawerKey.currentContext).pop();
+          //                   Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
+          //                 },
+          //                 child: Text("네"),
+          //               )
+          //             ],
+          //           ),
+          //         ));
         }
       } else {
         //TODO: 도시락이 아닌 일반 신청 사용자인 경우
@@ -1934,17 +2017,18 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                         }
                       : existRoom
                           ? () async {
+                              bool isCancel = false;
                               var bentoTempItems = enterUserList.where((element) => element.part == "도시락").toList();
                               OrderTime orderTime = OrderTime.one;
                               String orderTimeText = "11시";
-                             for(int i = 0; i<bentoTempItems.length; i++){
-                               for(int j = 0; j < bentoReservationList.length; j++){
-                                 for(int k = 0; k < bentoReservationList[j].users.length; k++){
-                                   bentoTempItems.removeWhere((element) => element.name ==
-                                       bentoReservationList[j].users[k].split(",").first);
-                                 }
-                               }
-                             }
+                              for (int i = 0; i < bentoTempItems.length; i++) {
+                                for (int j = 0; j < bentoReservationList.length; j++) {
+                                  for (int k = 0; k < bentoReservationList[j].users.length; k++) {
+                                    bentoTempItems.removeWhere(
+                                        (element) => element.name == bentoReservationList[j].users[k].split(",").first);
+                                  }
+                                }
+                              }
                               if (bentoTempItems.length > 0) {
                                 await showDialog(
                                     context: _drawerKey.currentContext,
@@ -1953,7 +2037,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                         bentoTempItems[i].isCheck = true;
                                       }
                                       return WillPopScope(
-
+                                        onWillPop: () {},
                                         child: AlertDialog(
                                           title: Text(
                                             "도시락 예약하기",
@@ -2155,17 +2239,17 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                             },
                                           ),
                                           actions: [
-                                            ElevatedButton(
-                                                onPressed: () async {
-                                                  String url = 'tel:01020138844';
-                                                  launch(url);
-                                                  Navigator.of(context).pop();
-                                                },
-                                                child: Text("전화로하기")),
+                                            // ElevatedButton(
+                                            //     onPressed: () async {
+                                            //       String url = 'tel:01020138844';
+                                            //       launch(url);
+                                            //       Navigator.of(context).pop();
+                                            //     },
+                                            //     child: Text("전화로하기")),
                                             ElevatedButton(
                                                 onPressed: () async {
                                                   String url =
-                                                      'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 ${bentoTempItems.where((element) => element.isCheck == true).length}명 $orderTimeText에 도시락 받으러갈게요!';
+                                                      'sms:01020138844&body=안녕하세요 6층 엔젤로보틱스 ${bentoReservationList.length + 1}팀 ${bentoTempItems.where((element) => element.isCheck == true).length}명 $orderTimeText에 도시락 받으러갈게요!';
                                                   launch(url);
                                                   Navigator.of(context).pop();
                                                 },
@@ -2175,89 +2259,110 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                 // Fluttertoast.showToast(
                                                 //     msg: "웹이에요");
                                                 String url =
-                                                    'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 ${bentoTempItems.where((element) => element.isCheck == true).length}명 $orderTimeText에 도시락 받으러갈게요!';
+                                                    'sms:01020138844?body=안녕하세요 6층 엔젤로보틱스 ${bentoReservationList.length + 1}팀 ${bentoTempItems.where((element) => element.isCheck == true).length}명 $orderTimeText에 도시락 받으러갈게요!';
                                                 launch(url);
                                                 Navigator.of(context).pop();
                                               },
                                               child: Text("안드로이드"),
-                                            )
+                                            ),
+                                            ElevatedButton(
+                                                onPressed: () async {
+                                                  isCancel = true;
+                                                  Navigator.of(context).pop();
+                                                },
+                                                child: Text("취소")),
                                           ],
                                         ),
                                       );
                                     });
 
-                                await showDialog(
-                                    context: _drawerKey.currentContext,
-                                    builder: (context) => WillPopScope(
-                                          onWillPop: () async {
-                                            return false;
-                                          },
-                                          child: AlertDialog(
-                                            title: Text("안내"),
-                                            content: Column(
-                                              mainAxisSize: MainAxisSize.min,
-                                              crossAxisAlignment: CrossAxisAlignment.start,
-                                              children: [
-                                                Text("마지막으로 확인하나만 할게요!"),
-                                                Text("주문에 대한 확정이 필요해요"),
-                                                Text("문자나 전화로 예약을 완료했나요?"),
-                                              ],
-                                            ),
-                                            actions: [
-                                              ElevatedButton(
+                                if (!isCancel) {
+                                  await showDialog(
+                                      context: _drawerKey.currentContext,
+                                      builder: (context) => WillPopScope(
+                                            onWillPop: () async {
+                                              return false;
+                                            },
+                                            child: AlertDialog(
+                                              title: Text("안내"),
+                                              content: Column(
+                                                mainAxisSize: MainAxisSize.min,
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  Text(
+                                                    "마지막으로 확인하나만 할게요!",
+                                                    style: TextStyle(
+                                                      fontFamily: "NanumBarunpenR",
+                                                    ),
+                                                  ),
+                                                  Text("주문에 대한 확정이 필요해요",
+                                                      style: TextStyle(
+                                                        fontFamily: "NanumBarunpenR",
+                                                      )),
+                                                  Text("문자나 전화로 예약을 완료했나요?",
+                                                      style: TextStyle(
+                                                        fontFamily: "NanumBarunpenR",
+                                                      )),
+                                                ],
+                                              ),
+                                              actions: [
+                                                ElevatedButton(
+                                                    onPressed: () async {
+                                                      Navigator.of(context).pop();
+                                                    },
+                                                    child: Text("아니요")),
+                                                ElevatedButton(
                                                   onPressed: () async {
                                                     Navigator.of(context).pop();
+                                                    //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
+                                                    //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
+                                                    for (int i = 0; i < bentoTempItems.length; i++) {
+                                                      bentoTempItems[i].part = "도시락";
+                                                    }
+                                                    // checkDuplicatedUser(checkUserList);
+                                                    await refreshEnterUserList();
+                                                    //ToDO: 이부분이 중복을 발생시키지 않을까?
+                                                    List<mUser.User> orderUserList = [];
+                                                    orderUserList.addAll(bentoTempItems
+                                                        .where((element) => element.isCheck == true)
+                                                        .toList());
+                                                    List<String> orderNameList = [];
+                                                    // bentoTempItems.forEach((u) {
+                                                    //   //TODO 도시락이랑 일반이랑 구분하기 위함.
+                                                    //   nameList.add("${u.name},${u.part}");
+                                                    // });
+                                                    orderUserList.forEach((element) {
+                                                      print(element.team);
+                                                      orderNameList
+                                                          .add("${element.name},${element.part},${element.team}");
+                                                    });
+                                                    await firestore
+                                                        .collection("lunch")
+                                                        .doc(currentDate)
+                                                        .collection("order")
+                                                        .add({
+                                                      "datetime": DateTime.now(),
+                                                      "users": orderNameList,
+                                                      "rev_time": orderTimeText
+                                                    });
+
+                                                    setState(() {
+                                                      enterUserList.clear();
+                                                    });
+                                                    await refreshEnterUserList();
+
+                                                    await refreshBentoReserveList();
+                                                    setState(() {
+                                                    });
+
+                                                    Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
                                                   },
-                                                  child: Text("아니요")),
-                                              ElevatedButton(
-                                                onPressed: () async {
-                                                  Navigator.of(context).pop();
-                                                  //TODO enterUserList는 기존에 방에 들어가있는 사람의 목록이다.
-                                                  //TODO 도시락인 경우 도시락 사람만 도시락으로 쓰기
-                                                  for (int i = 0; i < bentoTempItems.length; i++) {
-                                                    bentoTempItems[i].part = "도시락";
-                                                  }
-                                                  // checkDuplicatedUser(checkUserList);
-                                                  await refreshEnterUserList();
-                                                  //ToDO: 이부분이 중복을 발생시키지 않을까?
-                                                  List<mUser.User> orderUserList = [];
-                                                  orderUserList.addAll(bentoTempItems
-                                                      .where((element) => element.isCheck == true)
-                                                      .toList());
-                                                  List<String> orderNameList = [];
-                                                  // bentoTempItems.forEach((u) {
-                                                  //   //TODO 도시락이랑 일반이랑 구분하기 위함.
-                                                  //   nameList.add("${u.name},${u.part}");
-                                                  // });
-                                                  orderUserList.forEach((element) {
-                                                    print(element.team);
-                                                    orderNameList
-                                                        .add("${element.name},${element.part},${element.team}");
-                                                  });
-                                                  await firestore
-                                                      .collection("lunch")
-                                                      .doc(currentDate)
-                                                      .collection("order")
-                                                      .add({
-                                                    "datetime": DateTime.now(),
-                                                    "users": orderNameList,
-                                                    "rev_time": orderTimeText
-                                                  });
-
-                                                  setState(() {
-                                                    enterUserList.clear();
-                                                  });
-                                                  await refreshEnterUserList();
-
-                                                  await refreshBentoReserveList();
-
-                                                  Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
-                                                },
-                                                child: Text("네"),
-                                              )
-                                            ],
-                                          ),
-                                        ));
+                                                  child: Text("네"),
+                                                )
+                                              ],
+                                            ),
+                                          ));
+                                }
                               } else {
                                 showDialog(
                                   context: _drawerKey.currentContext,

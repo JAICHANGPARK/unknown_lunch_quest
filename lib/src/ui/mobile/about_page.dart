@@ -131,8 +131,8 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                   ),
                   ListTile(
                     title: Text("Clubhouse"),
-                    subtitle: Text("클럽하우스"),
-                    trailing: Text("@iamdreamwalker"),
+                    trailing: Text(""),
+
                   ),
                   Divider(
                     height: 8,

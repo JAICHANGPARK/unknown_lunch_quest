@@ -15,6 +15,7 @@ import 'src/ui/mobile/admin/ticket/ticket_record_page.dart';
 import 'src/ui/mobile/black_market/bit_coin_page.dart';
 import 'src/ui/mobile/bulletin_board_page.dart';
 import 'src/ui/mobile/contact_page.dart';
+import 'src/ui/mobile/enter_user_list_page.dart';
 import 'src/ui/mobile/home_page.dart';
 import 'src/ui/mobile/quest/battle_page.dart';
 
@@ -73,6 +74,7 @@ class MyApp extends StatelessWidget {
         "/bulletin_board": (context) => BulletinBoardPage(),
         "/data/record": (context) => MobileRecordPage(),
         "/quest/battle/monster": (context) => BattlePage(),
+        "/home/user/list": (context) => EnterUserListPage(),
         "/admin/login": (context) => LoginPage(),
         "/admin/home": (context) => AdminPage(),
         "/admin/home/pwd_change": (context) => PwdChangePage(),
