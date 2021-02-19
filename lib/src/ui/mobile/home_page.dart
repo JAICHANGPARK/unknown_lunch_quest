@@ -169,7 +169,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       enterUserList.add(mUser.User(name: name, team: team, part: part));
     });
 
-    if(isNotify){
+    if (isNotify) {
       print("refreshEnterUserList is Notify");
       setState(() {});
     }
@@ -388,7 +388,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
 
                               nowDateTime = dateTime;
                               currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
-                              if(isBlockDoubleFetch){
+                              if (isBlockDoubleFetch) {
                                 isBlockDoubleFetch = false;
                                 saveSelectDate(dateTime.toString()).then((value) {
                                   checkExistRoom(currentDate).then((value) {
@@ -407,7 +407,6 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                   });
                                 });
                               }
-
                             },
                             // onSelectedDateChange: (DateTime dateTime) async {
                             //   // print(dateTime);
@@ -2352,8 +2351,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                                     await refreshEnterUserList();
 
                                                     await refreshBentoReserveList();
-                                                    setState(() {
-                                                    });
+                                                    setState(() {});
 
                                                     Fluttertoast.showToast(msg: "신청이 완료되었어요.", webPosition: "center");
                                                   },
