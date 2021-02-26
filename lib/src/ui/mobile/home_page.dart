@@ -15,6 +15,7 @@ import 'package:flutter_lunch_quest/src/remote/api.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:percent_indicator/linear_percent_indicator.dart';
 import 'package:slide_digital_clock/slide_digital_clock.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -106,7 +107,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
       //     enterUserList.add(mUser.User(name: name, team: team, part: part));
       //   });
       // }
-      if (isInit) refreshEnterUserList(isNotify: false);
+      // if (isInit) refreshEnterUserList(isNotify: false);
     }
   }
 
@@ -170,7 +171,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     });
 
     if (isNotify) {
-      print("refreshEnterUserList is Notify");
+      // print("refreshEnterUserList is Notify");
       setState(() {});
     }
   }
@@ -263,6 +264,40 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
+    PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
+      String appName = packageInfo.appName;
+      String packageName = packageInfo.packageName;
+      String version = packageInfo.version;
+      String buildNumber = packageInfo.buildNumber;
+      if (int.parse(buildNumber) < 8) {
+        print("Need to update");
+        showDialog(
+            context: _drawerKey.currentContext,
+            builder: (context) => WillPopScope(
+                  onWillPop: () async {
+                    return false;
+                  },
+                  child: AlertDialog(
+                    title: Text(
+                      "안내",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: "NanumBarunpenR",
+                      ),
+                    ),
+                    content: Text(
+                      "새로운 버전이 있습니다.\n기존 탭을 닫거나 새로고침 해주세요.",
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontFamily: "NanumBarunpenR",
+                      ),
+                    ),
+                  ),
+                ));
+      }
+    });
+
     // print(">>> currentDate: $currentDate");
     _bottomSheetTabController = TabController(length: 10, vsync: this);
     _controllerCenter = ConfettiController(duration: const Duration(seconds: 7));
@@ -392,17 +427,19 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                 isBlockDoubleFetch = false;
                                 saveSelectDate(dateTime.toString()).then((value) {
                                   checkExistRoom(currentDate).then((value) {
-                                    refreshBentoReserveList().then((value) {
-                                      isBlockDoubleFetch = true;
-                                      if (dateTime.weekday == 6 || dateTime.weekday == 7) {
-                                        setState(() {
-                                          isWeekend = true;
-                                        });
-                                      } else {
-                                        setState(() {
-                                          isWeekend = false;
-                                        });
-                                      }
+                                    refreshEnterUserList().then((value){
+                                      refreshBentoReserveList().then((value) {
+                                        isBlockDoubleFetch = true;
+                                        if (dateTime.weekday == 6 || dateTime.weekday == 7) {
+                                          setState(() {
+                                            isWeekend = true;
+                                          });
+                                        } else {
+                                          setState(() {
+                                            isWeekend = false;
+                                          });
+                                        }
+                                      });
                                     });
                                   });
                                 });
@@ -646,8 +683,9 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                                     ),
                                     IconButton(
                                         icon: Icon(Icons.keyboard_arrow_right),
-                                        onPressed: () {
-                                          Navigator.of(context).pushNamed("/home/user/list");
+                                        onPressed: () async {
+                                          await Navigator.of(context).pushNamed("/home/user/list");
+                                          await refreshEnterUserList();
                                         })
                                   ],
                                 ),
@@ -1800,7 +1838,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         checkUserList.addAll(enterUserList);
         checkUserList.forEach((u) {
           //TODO 도시락이랑 일반이랑 구분하기 위함.
-          nameList.add("${u.name},${u.part}");
+          nameList.add("${u.name},${u.part},${u.team}");
           // print(u.name.split(',').length);
           // print(" ${u.name.split(',').first}  /  ${u.name.split(',').last}");
           // nameList.add("${u.name}");
