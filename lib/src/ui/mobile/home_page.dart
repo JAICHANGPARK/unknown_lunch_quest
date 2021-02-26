@@ -666,7 +666,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                   (!isWeekend && existRoom && !isClosed && enterUserList.length > 0)
                       ? //TODO: 참가 인원 리스트뷰
                       SizedBox(
-                          height: 320,
+                          height: 420,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
