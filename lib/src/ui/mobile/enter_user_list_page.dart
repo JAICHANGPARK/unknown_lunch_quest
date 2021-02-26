@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_lunch_quest/src/db/pref_api.dart';
 import 'package:flutter_lunch_quest/src/model/user.dart' as mUser;
 import 'package:flutter_lunch_quest/src/remote/api.dart';
+import 'package:intl/intl.dart';
 
 class EnterUserListPage extends StatefulWidget {
   EnterUserListPage({Key key}) : super(key: key);
@@ -22,7 +23,8 @@ class _EnterUserListPageState extends State<EnterUserListPage> {
     if (normalUserList.length > 0) normalUserList.clear();
     if (bentoUserList.length > 0) bentoUserList.clear();
     String selectDate = await readSelectDate();
-
+    // print("selectDate: ${selectDate}");
+    if(selectDate == null) selectDate = DateFormat("yyyy-MM-dd").format(DateTime.now());
     DocumentSnapshot querySnapshot =
         await FirebaseInstance.instance.fireStore.collection("lunch").doc(selectDate.split(" ").first).get();
 
