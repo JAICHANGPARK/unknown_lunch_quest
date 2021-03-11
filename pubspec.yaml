@@ -18,7 +18,7 @@ dependencies:
   intl: any
   flare_flutter: any
   lottie: ^0.7.0+1
-  web_browser_detect: ^1.0.4+1
+  web_browser_detect: ^1.1.0
 
   firebase: any
   responsive_builder: any
@@ -30,18 +30,18 @@ dependencies:
   flutter_slidable: ^0.5.7
   sliding_up_panel: ^1.0.2
   flutter_sparkline: any
-  timeago: ^3.0.1
+  timeago: ^3.0.2
   slide_digital_clock: any
-  flutter_svg: ^0.19.2+1
+  flutter_svg: ^0.19.3
   google_fonts: ^1.1.2
 
-  share: ^2.0.0
+  share: ^2.0.1
   url_launcher: ^6.0.1
   flutter_time_picker_spinner: ^1.0.6+1
   day_night_time_picker: any
   printing: any
   pdf: any
-  confetti: 0.5.4+1
+  confetti: ^0.5.5
   percent_indicator: ^2.1.9+1
   pimp_my_button: ^1.0.0
 
