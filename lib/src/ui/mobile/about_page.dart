@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fluttertoast/fluttertoast.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class AboutPage extends StatefulWidget {
   @override
@@ -12,13 +13,22 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
   int counter = 0;
 
   Animation<double> _animation;
-
+  String version = "";
   @override
   void initState() {
     // TODO: implement initState
     super.initState();
     _animationController = AnimationController(vsync: this, duration: Duration(milliseconds: 300));
     _animation = Tween(begin: 1.0, end: 1.3).animate(_animationController);
+    PackageInfo.fromPlatform().then((PackageInfo packageInfo) {
+      String appName = packageInfo.appName;
+      String packageName = packageInfo.packageName;
+      version = packageInfo.version;
+      String buildNumber = packageInfo.buildNumber;
+      setState(() {
+
+      });
+    });
   }
 
   TextEditingController textEditingController = TextEditingController();
@@ -132,7 +142,6 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                   ListTile(
                     title: Text("Clubhouse"),
                     trailing: Text(""),
-
                   ),
                   Divider(
                     height: 8,
@@ -259,6 +268,13 @@ class _AboutPageState extends State<AboutPage> with TickerProviderStateMixin {
                                 ),
                               ));
                     },
+                  ),
+                  Divider(
+                    height: 8,
+                  ),
+                  ListTile(
+                    title: Text("버전정보"),
+                    trailing: Text(version),
                   ),
                   Divider(
                     height: 8,

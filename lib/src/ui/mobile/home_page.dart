@@ -155,10 +155,13 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
   }
 
   Future<void> refreshEnterUserList({bool isNotify = true}) async {
-    if (enterUserList.length > 0) enterUserList.clear();
+    print(">>> Call refreshEnterUserList");
 
+    if (enterUserList.length > 0) enterUserList.clear();
+    print(">>> currentDate ${currentDate}");
     DocumentSnapshot querySnapshot = await firestore.collection("lunch").doc(currentDate).get();
     querySnapshot.data()["users"].forEach((element) {
+      print(element);
       String part = "";
       if (element.toString().split(",").length == 1) {
         part = "일반";
@@ -166,7 +169,8 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
         part = element.toString().split(",")[1];
       }
       String name = element.toString().split(",").first;
-      String team = element.toString().split(",").length > 2 ? element.toString().split(",").last : "";
+      String team = element.toString().split(",").length > 2 ? element.toString().split(",")[2] : "";
+      print(">>> name : ${name} , team :${team} ");
       enterUserList.add(mUser.User(name: name, team: team, part: part));
     });
 
@@ -323,6 +327,7 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
     }
 
     checkExistRoom(currentDate).then((value) {
+      refreshEnterUserList(isNotify: false);
       setState(() {});
     });
 
@@ -419,28 +424,42 @@ class _MyHomePageState extends State<MyHomePage> with TickerProviderStateMixin {
                             endDate: DateTime.now(),
                             initialSelectedDate: nowDateTime,
                             onSelectedDateChange: (DateTime dateTime) {
-                              // print(">>> Call onSelectedDateChange $dateTime");
-
+                              print(">>> Call onSelectedDateChange $dateTime");
+                              print(">>> isBlockDoubleFetch $isBlockDoubleFetch");
                               nowDateTime = dateTime;
                               currentDate = DateFormat("yyyy-MM-dd").format(dateTime);
                               if (isBlockDoubleFetch) {
                                 isBlockDoubleFetch = false;
                                 saveSelectDate(dateTime.toString()).then((value) {
+                                  print(">>> Done : saveSelectDate");
                                   checkExistRoom(currentDate).then((value) {
-                                    refreshEnterUserList().then((value){
-                                      refreshBentoReserveList().then((value) {
-                                        isBlockDoubleFetch = true;
-                                        if (dateTime.weekday == 6 || dateTime.weekday == 7) {
-                                          setState(() {
-                                            isWeekend = true;
-                                          });
-                                        } else {
-                                          setState(() {
-                                            isWeekend = false;
-                                          });
-                                        }
+                                    print(">>> Done : checkExistRoom");
+                                    if(existRoom){
+                                      refreshEnterUserList().then((value){
+                                        print(">>> Done : refreshEnterUserList");
+                                        refreshBentoReserveList().then((value) {
+                                          print(">>> Done : refreshBentoReserveList");
+                                          isBlockDoubleFetch = true;
+                                          if (dateTime.weekday == 6 || dateTime.weekday == 7) {
+                                            setState(() {
+                                              isWeekend = true;
+                                            });
+                                          } else {
+                                            setState(() {
+                                              isWeekend = false;
+                                            });
+                                          }
+                                        });
                                       });
-                                    });
+
+                                    }else{
+                                      setState(() {
+                                        enterUserList.clear();
+                                        isBlockDoubleFetch = true;
+                                      });
+
+                                    }
+
                                   });
                                 });
                               }
